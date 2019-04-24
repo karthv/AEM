@@ -1,0 +1,12 @@
+Steps to download and install Maven on Windows:
+Download and install JDK.
+Set environment variable JAVA_HOME
+Go to the site http://maven.apache.org  and download Maven zip and select below binary zip
+apache-maven-3.3.9-bin.zip
+
+Just unzip the file to the folder you want to install maven in, like
+C:/Program Files/maven
+
+Add M2_HOME Environment variable like C:\Program Files\apache-maven-3.5.4-bin\apache-maven-3.5.4
+Update the path variable, and append Maven bin folder to it i.e. %M2_HOME%\bin
+To verify, run maven –version in the command prompt.

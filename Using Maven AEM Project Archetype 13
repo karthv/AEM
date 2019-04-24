@@ -1,0 +1,184 @@
+///http://www.xeliumtech.com/tutorials/AEM
+
+Using Maven AEM Project Archetype 13
+1. Verify Maven Version:
+
+    Run below command on terminal to verify that maven has installed:
+
+    $ mvn –version
+
+
+
+ 
+
+2. Create Maven Archetype:
+
+     Run below command to create maven project-
+
+     mvn org.apache.maven.plugins:maven-archetype-plugin:2.4:generate
+
+    -DarchetypeGroupId=com.adobe.granite.archetypes
+
+    -DarchetypeArtifactId=aem-project-archetype
+
+    -DarchetypeVersion=13
+
+    -DarchetypeCatalog=https://repo.adobe.com/nexus/content/groups/public/
+
+ 
+
+3. Answer the archetype questions:
+
+    The AEM project archetype will ask some questions to set up the project. The   following table lists the values that will be used:
+
+ 
+
+Description
+
+Property
+
+Value
+
+Maven group id
+
+groupId
+
+com.adobe.aem.guides
+
+Maven artifact id
+
+artifactId
+
+aem-guides-myproject
+
+Starting version of project
+
+Version
+
+0.0.1-SNAPSHOT
+
+Java source package
+
+package
+
+com.adobe.aem.guides.myproject
+
+/apps folder name
+
+appsFolderName
+
+Myproject
+
+Maven project name
+
+artifactName
+
+myproject Sites Project
+
+AEM component group name
+
+componentGroupName
+
+myproject.Content
+
+/conf folder name
+
+confFolderName
+
+Myproject
+
+/content folder name
+
+contentFolderName
+
+Myproject
+
+Prefix used in generated CSS
+
+cssId
+
+Myproject
+
+Content Package group name
+
+packageGroup
+
+aem-guides/myproject
+
+AEM site name
+
+siteName
+
+MYPROJECT Site
+
+ 
+
+   When prompted further, specify Y. The build is successful.
+
+4. Build your project
+
+Navigate into the aem-guides-myproject directory and run the below maven command to build and deploy the project
+
+    $ cd aem-guides-myproject
+
+    $ mvn -PautoInstallPackage -Padobe-public clean install
+
+    Or
+
+    $ mvn clean install -PdeployAuthor
+
+
+
+5. View Packages on AEM
+
+Navigate to Package Manager on local AEM instance:    http://localhost:4502/crx/packmgr/index.jsp
+
+We can see the following 5 packages installed:
+
+
+
+6. Go to the AEM Sites Console: http://localhost:4502/sites.html
+
+The myprojectSite will be listed in the sites, which includes two content pages, one for English and one for French.
+
+
+
+ 
+
+ 
+
+7. Open up any one of the content pages in the Sites editor: 
+
+    http://localhost:4502/editor.html/content/myproject/en.html
+
+
+
+ 
+
+We will build the Core module independently from the rest of the project with the below commands from the terminal:
+
+     cd aem-guides-myproject/core/
+
+     mvn -PautoInstallBundle clean install
+
+ 
+
+
+
+ 
+
+8. Go to http://localhost:4502/system/console/bundles  we will be able to see the bundle installed and active.
+
+
+
+ 
+
+9. The OSGi bundle is a jar that deploys to the AEM repository as an embedded part of the ui.apps module. The 'physical' location of the jar can be seen in CRXDE-Lite:
+
+ 
+
+
+
+         
+
+Notice that core.wcm.components.all zip is included as a sub-package. This will deploy the Core Components package along with the MYPROJECT code each time.

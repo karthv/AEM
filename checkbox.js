@@ -1,77 +1,86 @@
-(function ($, $document, Granite) {
+(function(document, $) {
   "use strict";
 
-  $document.on("foundation-contentloaded", function (e) {
-    // if there is already an initial value make sure the according target elements become visible
-    checkboxShowHideHandler($(".cq-dialog-checkbox-showhide", e.target));
-  });
+  var TOGGLE_ATTRIBUTE_PREFIX = "data-toggle-";
+  var MASTER_ATTRIBUTE_SUFFIX = "_master";
+  var SLAVE_ATTRIBUTE_SUFFIX = "_slave";
+  var DIALOG_CONTENT_SELECTOR = ".cq-dialog-content";
 
-  $document.on("change", ".cq-dialog-checkbox-showhide", function (e) {
-    checkboxShowHideHandler($(this));
-  });
-
-  function checkboxShowHideHandler(el) {
-    el.each(function (i, element) {
-      if ($(element).is("coral-checkbox")) {
-        // handle Coral3 base checkbox
-        Coral.commons.ready(element, function (component) {
-          showHide(component, element);
-          component.on("change", function () {
-            showHide(component, element);
-          });
+  var toggles = [
+    {
+      name: "toggle1",
+      updateFunction: function(master, $slaves) {
+        var isChecked = master[0].hasAttribute("checked");
+        $slaves.each(function() {
+          if (isChecked.toString() !== $(this).attr(getAttributes("checked").slave)) {
+            $(this).addClass("hide");
+          } else {
+            $(this).removeClass("hide");
+          }
         });
-      } else {
-        // handle Coral2 based checkbox
-        var component = $(element).data("checkbox");
-        if (component) {
-          showHide(component, element);
-        }
+      }
+    },
+    {
+      name: "toggle2",
+      updateFunction: function(master, $slaves) {
+        // update logic for toggle2
+      }
+    },
+    // add more toggle objects as needed
+  ];
+
+  /**
+   * Build the master and slave attribute names from the toggle name.
+   * @param {string} toggleName
+   */
+  function getAttributes(toggleName) {
+    return {
+      master: TOGGLE_ATTRIBUTE_PREFIX + toggleName + MASTER_ATTRIBUTE_SUFFIX,
+      slave: TOGGLE_ATTRIBUTE_PREFIX + toggleName + SLAVE_ATTRIBUTE_SUFFIX
+    };
+  }
+
+  /**
+   * Builds the master and slave selectors from the toggle name.
+   * @param {string} toggleName
+   */
+  function getSelectors(toggleName) {
+    var attributes = getAttributes(toggleName);
+    return {
+      master: "[" + attributes.master + "]",
+      slave: "[" + attributes.slave + "]"
+    };
+  }
+
+  var selectors = {};
+  toggles.forEach(function(toggle) {
+    var toggleSelectors = getSelectors(toggle.name);
+    selectors[toggle.name] = toggleSelectors;
+  });
+
+  // When the dialog is loaded, init all slaves
+  $(document).on("foundation-contentloaded", function(e) {
+    var $dialog = $(e.target);
+
+    toggles.forEach(function(toggle) {
+      var $master = $dialog.find(selectors[toggle.name].master);
+      if ($master.length > 0) {
+        var $slaves = $dialog.find(selectors[toggle.name].slave);
+        toggle.updateFunction($master, $slaves);
       }
     });
-  }
+  });
 
-  function showHide(component, element) {
-    console.log("showing");
+  // When a value is changed, trigger update
+  $(document).on("change", function(e) {
+    var $master = $(e.target);
+    var $dialog = $master.parents(DIALOG_CONTENT_SELECTOR);
 
-    // get the selectors to find the target elements. they are stored as data attributes on the checkbox
-    var targets = $(element).data("cqDialogCheckboxShowhideTargets");
-    var targetMap = {};
-    if (targets) {
-      targets = targets.split(",");
-      for (var i = 0; i < targets.length; i++) {
-        var target = targets[i].trim();
-        targetMap[target] = $(target);
+    toggles.forEach(function(toggle) {
+      if ($master.is(selectors[toggle.name].master)) {
+        var $slaves = $dialog.find(selectors[toggle.name].slave);
+        toggle.updateFunction($master, $slaves);
       }
-    }
-
-    // hide all targets
-    for (var targetSelector in targetMap) {
-      targetMap[targetSelector].addClass("hide");
-    }
-
-    // show targets that match checkbox value
-    var targetValue = component.value;
-    var targetSelectors = $(element).data("cqDialogCheckboxShowhideTarget-" + targetValue);
-    if (targetSelectors) {
-      targetSelectors = targetSelectors.split(",");
-      for (var i = 0; i < targetSelectors.length; i++) {
-        var targetSelector = targetSelectors[i].trim();
-        if (targetMap[targetSelector]) {
-          targetMap[targetSelector].removeClass("hide");
-        }
-      }
-    }
-  }
-})($, $(document), Granite);
-Here are the main changes made to the code:
-
-Added a new data attribute "cqDialogCheckboxShowhideTargets" to each checkbox, which will hold a comma-separated list of all target selectors for that checkbox.
-Modified the "showHide" function to parse the "cqDialogCheckboxShowhideTargets" attribute and store each target selector in a map for faster lookup.
-Modified the "showHide" function to hide all targets before showing the ones that match the checkbox value.
-Added new data attributes to each checkbox to specify the target selectors to show for each checkbox value. These attributes have the format "cqDialogCheckboxShowhideTarget-{value}", where {value} is the checkbox value. Multiple target selectors can be specified for each value, separated by commas.
-With these changes, you can specify multiple target selectors for each checkbox value, and the code will show/hide them appropriately.
-
-
-
-
-
+    });
+  });
+})(document, Granite.$);

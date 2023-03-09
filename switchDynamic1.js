@@ -6,21 +6,21 @@
   var SLAVE_ATTRIBUTE_SUFFIX = "_slave";
   var DIALOG_CONTENT_SELECTOR = ".cq-dialog-content";
 
-  // Define the generateToggles function
-  function generateToggles($dialog) {
-    var toggles = [];
+  var toggles = [];
 
-    // Get all the master switches in the dialog
-    var $masters = $dialog.find("[data-sly-resource$='master']");
+  // Loop through each master switch and add a new toggle object to the array
+  $(document).on("foundation-contentloaded", function(e) {
+    var $dialog = $(e.target);
+    var $masters = $dialog.find("[" + TOGGLE_ATTRIBUTE_PREFIX + MASTER_ATTRIBUTE_SUFFIX + "]");
 
-    $masters.each(function(index) {
+    $masters.each(function(index, master) {
       var toggleName = "toggle" + (index + 1);
       var toggleObj = {
         name: toggleName,
-        updateFunction: function(master, $slaves) {
-          var isChecked = master[0].hasAttribute("checked");
+        updateFunction: function($master, $slaves) {
+          var isChecked = $master[0].hasAttribute("checked");
           $slaves.each(function() {
-            if (isChecked.toString() !== $(this).attr(getAttributes("checked").slave)) {
+            if (isChecked.toString() !== $(this).attr(getAttributes(toggleName).slave)) {
               $(this).addClass("hide");
             } else {
               $(this).removeClass("hide");
@@ -30,9 +30,7 @@
       };
       toggles.push(toggleObj);
     });
-
-    return toggles;
-  }
+  });
 
   /**
    * Build the master and slave attribute names from the toggle name.
@@ -57,17 +55,12 @@
     };
   }
 
+  var selectors = {};
+
+  // When the dialog is loaded, init all slaves
   $(document).on("foundation-contentloaded", function(e) {
     var $dialog = $(e.target);
-    var toggles = generateToggles($dialog);
 
-    var selectors = {};
-    toggles.forEach(function(toggle) {
-      var toggleSelectors = getSelectors(toggle.name);
-      selectors[toggle.name] = toggleSelectors;
-    });
-
-    // Init all slaves
     toggles.forEach(function(toggle) {
       var $master = $dialog.find(selectors[toggle.name].master);
       if ($master.length > 0) {
@@ -75,18 +68,19 @@
         toggle.updateFunction($master, $slaves);
       }
     });
+  });
 
-    // When a value is changed, trigger update
-    $(document).on("change", function(e) {
-      var $master = $(e.target);
-      var $dialog = $master.parents(DIALOG_CONTENT_SELECTOR);
+  // When a value is changed, trigger update
+  $(document).on("change", function(e) {
+    var $master = $(e.target);
+    var $dialog = $master.parents(DIALOG_CONTENT_SELECTOR);
 
-      toggles.forEach(function(toggle) {
-        if ($master.is(selectors[toggle.name].master)) {
-          var $slaves = $dialog.find(selectors[toggle.name].slave);
-          toggle.updateFunction($master, $slaves);
-        }
-      });
+    toggles.forEach(function(toggle) {
+      if ($master.is(selectors[toggle.name].master)) {
+        var $slaves = $dialog.find(selectors[toggle.name].slave);
+        toggle.updateFunction($master, $slaves);
+      }
     });
   });
+
 })(document, Granite.$);

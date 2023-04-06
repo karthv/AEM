@@ -84,3 +84,6 @@
     });
   });
 })(document, Granite.$);
+
+mvn -B archetype:generate -D archetypeGroupId=com.adobe.aem -D archetypeArtifactId=aem-project-archetype -D archetypeVersion=40 -D appTitle="core" -D appId="aem-library" -D groupId="de.volkswagen.coe.aem" -D aemVersion=cloud -DsdkVersion=latest -DartifactId="core" -DfrontendModule=none -D includeExamples=y         
+

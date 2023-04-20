@@ -1,0 +1,57 @@
+# groupId to be used for newly created packages
+groupId: com.example
+
+# information about parent pom
+parentPom:
+  # absolute path to the parent pom file
+  path: /path/to/parent/pom.xml
+  # the artifactId to be set for the parent pom
+  artifactId: parent-pom
+  # the application title to be set for the parent pom
+  appTitle: Parent Pom
+  # version to be set for the parent pom
+  version: 1.0.0
+
+# information required for all and analyse packages
+all:
+  # prefix that is to be used to set the artifactId for all and analyse packages
+  artifactId: my-aem-project
+  # application title
+  appTitle: My AEM Project
+  # version to be set for all pom
+  version: 1.0.0-SNAPSHOT
+
+# information about projects
+projects:
+  -
+    # absolute path to the project folder
+    projectPath: /path/to/my/aem/project
+    # Array of relative path(s) (w.r.t. the project folder) to the existing content package(s) that needs to be restructured.
+    # NOTE : only content packages are expected here, NOT bundle/jar artifacts
+    existingContentPackageFolder:
+      - content/ui.apps
+      - content/ui.content
+    # relative path (w.r.t. the existing content package folder) to the filter.xml file
+    # (If not specified, default path `/src/main/content/META-INF/vault/filter.xml` will be used.)
+    relativePathToExistingFilterXml: src/main/content/META-INF/vault/filter.xml
+    # relative path (w.r.t. the existing content package folder) to the jcr_root directory
+    # (If not specified, default path `/src/main/content/jcr_root` will be used)
+    relativePathToExistingJcrRoot: src/main/content/jcr_root
+    # prefix that is to be used to set the artifactId for newly created ui.apps and ui.content packages
+    artifactId: my-aem-project
+    # application title
+    appTitle: My AEM Project
+    # application ID (will be used for config and package folder names)
+    appId: my-aem-project
+    # project specific version to be used for content packages
+    version: 1.0.0-SNAPSHOT
+    # Array of relative path(s) (w.r.t. the project folder) to the existing code bundles (will be embedded in the all package).
+    coreBundles:
+      - target/my-aem-project.core-1.0.0-SNAPSHOT.jar
+    # OSGi config folders that need to be renamed.
+    # The existing/source OSGi config folder PATH (JCR path stating from '/apps') is expected as key
+    # and the replacement OSGi folder NAME is expected as value.
+    osgiFoldersToRename:
+      /apps/my-aem-project/config.prod: config.publish.prod
+      /apps/system/config.author.dev1: config.author.dev
+      /apps/system/config.author.dev2: config.author.dev

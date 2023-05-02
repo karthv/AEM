@@ -61,3 +61,7 @@
         </tab2>
     </items>
 </jcr:root>
+
+ # export and import com.itextpdf.text version 5.5.6 packages
+          Export-Package: com.itextpdf.text.*;version=5.5.6
+          Import-Package: com.itextpdf.text.*;version=5.5.

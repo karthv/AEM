@@ -185,3 +185,17 @@ m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.e
       // ignore unwanted packages
       -ignore: ${join(',', ${filter;${packages;CONCRETE};!(osgi.*)})}
 
+
+
+// ignore unwanted packages
+    -removeheaders: Import-Package
+    -removeheaders: javax.inject;version=0.0.0
+    -removeheaders: org.xhtmlrenderer.pdf.*
+    -removeheaders: org.apache.jcp.xml.dsig.internal.dom.*
+    -removeheaders: org.apache.xml.security.utils.*
+    -removeheaders: com.itextpdf.*
+    -removeheaders: org.bouncycastle.*
+    -removeheaders: twitter4j.*
+    -removeheaders: com.lowagie.*
+    -removeheaders: com.apple.mrj.*
+

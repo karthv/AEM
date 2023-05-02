@@ -85,3 +85,71 @@ m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.e
 
 <Embed-Dependency>*;groupId=com.maxmind.geoip2|com.itextpdf|com.lowagie|com.fasterxml.jackson.core|com.maxmind.db|org.xhtmlrenderer|com.atlassian.commonmark;scope=compile|runtime;type=!pom;
 							inline=false,jsoup</Embed-Dependency>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- BND Maven Plugin -->
+<plugin>
+  <groupId>biz.aQute.bnd</groupId>
+  <artifactId>bnd-maven-plugin</artifactId>
+  <version>${bnd.version}</version>
+  <executions>
+    <execution>
+      <id>bnd-process</id>
+      <goals>
+        <goal>bnd-process</goal>
+      </goals>
+      <configuration>
+        <bnd><![CDATA[
+          Bundle-Category: ${componentGroupName}
+
+          # export and import specified packages
+          Export-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record, jsoup.*
+          Import-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record, org.jsoup.*
+
+          # reproducible builds (https://github.com/bndtools/bnd/issues/3521)
+          -noextraheaders: true
+          -snapshot: SNAPSHOT
+
+          # ignore unwanted packages
+          -ignore: ${join(',', ${packages;flatten;${filter;${packages;CONCRETE};.*\.(ocsp|ess|dom|cms|paddings|license|cmp|tsp|x500|ocsp|pkcs)}})}
+
+          Bundle-DocURL:
+          -plugin org.apache.sling.caconfig.bndplugin.ConfigurationClassScannerPlugin
+          -plugin org.apache.sling.bnd.models.ModelsScannerPlugin
+        ]]></bnd>
+      </configuration>
+    </execution>
+  </executions>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.caconfig.bnd-plugin</artifactId>
+      <version>1.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.bnd.models</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>scriptingbundle-maven-plugin</artifactId>
+      <version>0.5.0</version>
+    </dependency>
+  </dependencies>
+</plugin>
+

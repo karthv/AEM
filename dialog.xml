@@ -76,3 +76,10 @@ m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.e
           Import-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record
 
           # reproducible builds (https://github.com/bndtools/bnd/issues/3521)
+
+org.bouncycastle.asn1.ocsp, org.bouncycastle.asn1.ess, org.apache.jcp.xml.dsig.internal.dom, org.bouncycastle.asn1.cms, org.bouncycastle.crypto.paddings, 
+org.bouncycastle.cert, com.itextpdf.license, org.bouncycastle.jce, org.bouncycastle.asn1.x509, org.bouncycastle.jcajce.provider.digest, org.bouncycastle
+.asn1.cmp, org.bouncycastle.tsp, org.bouncycastle.crypto.engines, org.bouncycastle.cms.jcajce, org.apache.xml.security.utils, org.bouncycastle.asn1.tsp,
+ org.bouncycastle.asn1.x500, org.bouncycastle.cert.ocsp, org.bouncycastle.operator.bc, org.bouncycastle.crypto, org.bouncycastle.crypto.params, org.boun
+cycastle.cert.jcajce, org.bouncycastle.operator.jcajce, org.bouncycastle.asn1.pkcs, org.bouncycastle.jce.provider, org.bouncycastle.crypto.modes, org.bo
+uncycastle.ocsp, org.bouncycastle.asn1, org.bouncycastle.cms, org.bouncycastle.operator

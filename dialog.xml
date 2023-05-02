@@ -175,5 +175,13 @@ m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.e
 </plugin>
 
 
-!org.xhtmlrenderer.pdf.*;!org.apache.jcp.xml.dsig.internal.dom.*;!org.apache.xml.security.utils.*;!com.itextpdf.*;!org.bouncycastle.*;!twitter4j.*;!com.lowagie.*;!com.apple.mrj.*;!com.itextpdf.*;javax.inject;version=0.0.0,*
+ Export-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record, jsoup.*
+      Import-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record, org.jsoup.*, !org.xhtmlrenderer.pdf.*, !org.apache.jcp.xml.dsig.internal.dom.*, !org.apache.xml.security.utils.*, !com.itextpdf.*, !org.bouncycastle.*, !twitter4j.*, !com.lowagie.*, !com.apple.mrj.*, !com.itextpdf.*, javax.inject;version=0.0.0,*
+
+      // reproducible builds (https://github.com/bndtools/bnd/issues/3521)
+      -noextraheaders: true
+      -snapshot: SNAPSHOT
+
+      // ignore unwanted packages
+      -ignore: ${join(',', ${filter;${packages;CONCRETE};!(osgi.*)})}
 

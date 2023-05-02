@@ -64,4 +64,7 @@
 
  # export and import com.itextpdf.text version 5.5.6 packages
           Export-Package: com.itextpdf.text.*;version=5.5.6
-          Import-Package: com.itextpdf.text.*;version=5.5.
+          Import-Package: com.itextpdf.text.*;version=5.5.6
+
+co
+m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record

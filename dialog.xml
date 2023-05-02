@@ -68,3 +68,11 @@
 
 co
 m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record
+
+
+
+ # export and import specified packages
+          Export-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record
+          Import-Package: com.itextpdf.text.*;version=5.5.6, com.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.exception, com.adobe.acs.commons.email, com.maxmind.geoip2.record
+
+          # reproducible builds (https://github.com/bndtools/bnd/issues/3521)

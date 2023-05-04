@@ -298,4 +298,15 @@ Embedded-Artifacts: itextpdf-5.5.6.jar;g="com.itextpdf";a="itextpdf";v="
 </plugins>
 
 
-
+com.day.cq.wcm.resource.details,version=[0.5,1) -- Cannot be resolved
+com.day.cq.wcm.webservicesupport,version=[5.10,6) from com.day.cq.wcm.cq-wcm-webservice-support (468)
+com.day.image,version=[1.0,2) from day-commons-gfx (479)
+com.fasterxml.jackson.annotation,version=[2.13,3) from com.fasterxml.jackson.core.jackson-annotations (128)
+com.fasterxml.jackson.databind,version=[2.13,3) from com.fasterxml.jackson.core.jackson-databind (130)
+com.google.common.collect,version=[15.0,16) from com.adobe.granite.osgi.wrapper.guava (118)
+com.itextpdf.text,version=[5.5,6) from com.itextpdf (593)
+com.maxmind.db -- Cannot be resolved
+com.maxmind.geoip2 -- Cannot be resolved
+com.maxmind.geoip2.exception -- Cannot be resolved
+com.maxmind.geoip2.model -- Cannot be resolved
+com.maxmind.geoip2.record -- Cannot be resolved

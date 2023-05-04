@@ -441,3 +441,52 @@ com.maxmind.geoip2.record -- Cannot be resolved
 org.apache.http.util,version=[4.5,5) -- Cannot be resolved
 org.w3c.dom,version=[1.0,2) -- Cannot be resolved
 org.xml.sax,version=[2.0,3) -- Cannot be resolved
+
+<plugins>
+  <plugin>
+    <groupId>org.apache.sling</groupId>
+    <artifactId>sling-maven-plugin</artifactId>
+  </plugin>
+  <plugin>
+    <groupId>biz.aQute.bnd</groupId>
+    <artifactId>bnd-maven-plugin</artifactId>
+    <executions>
+      <execution>
+        <id>bnd-process</id>
+        <goals>
+          <goal>bnd-process</goal>
+        </goals>
+        <configuration>
+          <bnd><![CDATA[
+            Import-Package: javax.annotation;version=0.0.0,\
+              com.day.cq.wcm.resource;version="[5.5,6)",\
+              com.maxmind.db,\
+              com.maxmind.geoip2,\
+              com.maxmind.geoip2.exception,\
+              com.maxmind.geoip2.model,\
+              com.maxmind.geoip2.record,\
+              org.apache.commons.io.filefilter;version="[2.11,3)",\
+              org.apache.commons.lang3;version="[3.5,4)",\
+              org.apache.http.client;version="[4.5,5)",\
+              org.apache.http.impl.client;version="[4.5,5)",\
+              org.apache.http.impl.conn;version="[4.5,5)",\
+              org.apache.http.util;version="[4.5,5)",\
+              org.slf4j;version="[1.7,2)",\
+              org.w3c.dom;version="[1.0,2)",\
+              org.xml.sax;version="[2.0,3)",\
+              *
+            Export-Package: com.maxmind.geoip2;version="2.16.0",\
+              com.itextpdf;version="5.5.13.2",\
+              com.lowagie;version="2.1.7",\
+              com.fasterxml.jackson.core;version="2.9.8",\
+              com.maxmind.db;version="1.5.2",\
+              org.xhtmlrenderer;version="1.0.0",\
+              com.atlassian.commonmark;version="0.11.0",\
+              org.jsoup;version="1.13.1"
+          ]]></bnd>
+        </configuration>
+      </execution>
+    </executions>
+  </plugin>
+</plugins>
+

@@ -222,5 +222,35 @@ m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.e
                     </instructions>
                 </configuration>
             </plugin>
+
+
+
+
+
+<plugins>
+    <plugin>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>sling-maven-plugin</artifactId>
+    </plugin>
+    <plugin>
+        <groupId>biz.aQute.bnd</groupId>
+        <artifactId>bnd-maven-plugin</artifactId>
+        <executions>
+            <execution>
+                <id>bnd-process</id>
+                <goals>
+                    <goal>bnd-process</goal>
+                </goals>
+                <configuration>
+                    <bnd><![CDATA[
+                        Import-Package: javax.annotation;version=0.0.0,*
+                        Embed-Dependency: *;groupId=com.maxmind.geoip2|com.itextpdf|com.lowagie|com.fasterxml.jackson.core|com.maxmind.db|org.xhtmlrenderer|com.atlassian.commonmark;scope=compile|runtime;type=!pom;inline=false,jsoup
+                    ]]></bnd>
+                </configuration>
+            </execution>
+        </executions>
+    </plugin>
+</plugins>
+
             
 

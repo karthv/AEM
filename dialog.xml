@@ -310,3 +310,49 @@ com.maxmind.geoip2 -- Cannot be resolved
 com.maxmind.geoip2.exception -- Cannot be resolved
 com.maxmind.geoip2.model -- Cannot be resolved
 com.maxmind.geoip2.record -- Cannot be resolved
+
+
+
+
+
+<plugins>
+  <plugin>
+    <groupId>org.apache.sling</groupId>
+    <artifactId>sling-maven-plugin</artifactId>
+  </plugin>
+  <plugin>
+    <groupId>biz.aQute.bnd</groupId>
+    <artifactId>bnd-maven-plugin</artifactId>
+    <executions>
+      <execution>
+        <id>bnd-process</id>
+        <goals>
+          <goal>bnd-process</goal>
+        </goals>
+        <configuration>
+          <bnd><![CDATA[
+            Import-Package: javax.annotation;version=0.0.0,\
+              com.day.cq.wcm.resource.details;version="[0.5,1)",\
+              com.maxmind.db,\
+              com.maxmind.geoip2,\
+              com.maxmind.geoip2.exception,\
+              com.maxmind.geoip2.model,\
+              com.maxmind.geoip2.record,\
+              org.apache.commons.io.filefilter;version="[2.11,3)",\
+              org.apache.commons.lang3;version="[3.5,4)",\
+              org.apache.http.client;version="[4.5,5)",\
+              org.apache.http.impl.client;version="[4.5,5)",\
+              org.apache.http.impl.conn;version="[4.5,5)",\
+              org.apache.http.util;version="[4.5,5)",\
+              org.slf4j;version="[1.7,2)",\
+              org.w3c.dom;version="[1.0,2)",\
+              org.xml.sax;version="[2.0,3)",\
+              *
+            Embed-Dependency: *;groupId=com.maxmind.geoip2|com.itextpdf|com.lowagie|com.fasterxml.jackson.core|com.maxmind.db|org.xhtmlrenderer|com.atlassian.commonmark;scope=compile|runtime;type=!pom;inline=false,jsoup
+          ]]></bnd>
+        </configuration>
+      </execution>
+    </executions>
+  </plugin>
+</plugins>
+

@@ -406,3 +406,11 @@ com.maxmind.geoip2.record -- Cannot be resolved
     </executions>
   </plugin>
 </plugins>
+
+com.day.cq.wcm.resource.details,version=[0.5,1) -- Cannot be resolved
+com.maxmind.geoip2.exception -- Cannot be resolved
+com.maxmind.geoip2.model -- Cannot be resolved
+com.maxmind.geoip2.record -- Cannot be resolved
+org.apache.http.util,version=[4.5,5) -- Cannot be resolved
+org.w3c.dom,version=[1.0,2) -- Cannot be resolved
+org.xml.sax,version=[2.0,3) -- Cannot be resolved

@@ -253,4 +253,16 @@ m.maxmind.geoip2.model, com.maxmind.geoip2, com.maxmind.db, com.maxmind.geoip2.e
 </plugins>
 
             
+Embed-Transitive: true
+Embedded-Artifacts: itextpdf-5.5.6.jar;g="com.itextpdf";a="itextpdf";v="
+ 5.5.6",flying-saucer-core-9.1.20.jar;g="org.xhtmlrenderer";a="flying-sa
+ ucer-core";v="9.1.20",flying-saucer-pdf-itext5-9.1.20.jar;g="org.xhtmlr
+ enderer";a="flying-saucer-pdf-itext5";v="9.1.20",itext-2.1.7.jar;g="com
+ .lowagie";a="itext";v="2.1.7",flying-saucer-pdf-osgi-9.1.2.jar;g="org.x
+ htmlrenderer";a="flying-saucer-pdf-osgi";v="9.1.2",flying-saucer-pdf-9.
+ 1.2.jar;g="org.xhtmlrenderer";a="flying-saucer-pdf";v="9.1.2",commonmar
+ k-0.9.0.jar;g="com.atlassian.commonmark";a="commonmark";v="0.9.0",geoip
+ 2-2.8.1.jar;g="com.maxmind.geoip2";a="geoip2";v="2.8.1",maxmind-db-1.2.
+ 2.jar;g="com.maxmind.db";a="maxmind-db";v="1.2.2",jsoup-1.12.2.jar;g="o
+ rg.jsoup";a="jsoup";v="1.12.2"
 

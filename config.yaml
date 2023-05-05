@@ -156,3 +156,16 @@ org.apache.sling.scripting.sightly.SightlyException: Compilation errors in org/a
   </dependencies>
 </plugin>
 
+
+
+Sling-Model-Packages: \
+            com.example.models; \
+            org.apache.sling.models.annotations; \
+            org.apache.sling.models.impl; \
+            org.apache.sling.models.spi
+          Embed-Dependency: \
+            *;scope=compile|runtime
+          -dsannotations-options: \
+            infer-all, \
+            process-sling-models
+

@@ -55,3 +55,29 @@ projects:
       /apps/my-aem-project/config.prod: config.publish.prod
       /apps/system/config.author.dev1: config.author.dev
       /apps/system/config.author.dev2: config.author.dev
+      
+      
+      
+     org.osgi.framework.BundleException: Uses constraint violation. Unable to resolve resource core-aemaacs.core [core-aemaacs.core [590](R 590.1)] because it is exposed to package 'org.apache.http.client' from resources core-aemaacs.core [core-aemaacs.core [590](R 590.1)] and org.apache.httpcomponents.httpclient [org.apache.httpcomponents.httpclient [60](R 60.0)] via two dependency chains.__Chain 1:_  core-aemaacs.core [core-aemaacs.core [590](R 590.1)]_    import: (&(osgi.wiring.package=org.apache.http.client)(version>=4.5.0.2))_     |_    export: osgi.wiring.package: org.apache.http.client_  core-aemaacs.core [core-aemaacs.core [590](R 590.1)]__Chain 2:_  core-aemaacs.core [core-aemaacs.core [590](R 590.1)]_    import: (&(osgi.wiring.package=org.apache.http.client.protocol)(version>=4.5.0)(!(version>=5.0.0)))_     |_    export: osgi.wiring.package: org.apache.http.client.protocol; uses:=org.apache.http.client_    export: osgi.wiring.package=org.apache.http.client_  org.apache.httpcomponents.httpclient [org.apache.httpcomponents.httpclient [60](R 60.0)] Unresolved requirements: [[core-aemaacs.core [590](R 590.1)] osgi.wiring.package; (&(osgi.wiring.package=org.apache.http.client.protocol)(version>=4.5.0)(!(version>=5.0.0)))]
+	at org.apache.felix.framework.Felix.resolveBundleRevision(Felix.java:4398)
+	at org.apache.felix.framework.Felix.startBundle(Felix.java:2308)
+	at org.apache.felix.framework.BundleImpl.start(BundleImpl.java:1006)
+	at org.apache.felix.framework.BundleImpl.start(BundleImpl.java:992)
+	at org.apache.sling.installer.core.impl.tasks.BundleStartTask.execute(BundleStartTask.java:97)
+	at org.apache.sling.installer.core.impl.OsgiInstallerImpl.doExecuteTasks(OsgiInstallerImpl.java:918) [org.apache.sling.installer.core:3.12.0]
+	at org.apache.sling.installer.core.impl.OsgiInstallerImpl.executeTasks(OsgiInstallerImpl.java:755) [org.apache.sling.installer.core:3.12.0]
+	at org.apache.sling.installer.core.impl.OsgiInstallerImpl.run(OsgiInstallerImpl.java:304) [org.apache.sling.installer.core:3.12.0]
+	at java.base/java.lang.Thread.run(Thread.java:834)
+05.05.2023 10:01:14.921 *INFO* [OsgiInstallerImpl] org.apache.sling.installer.core.impl.tasks.BundleStartTask Could not start bundle core-aemaacs.core [590]. Reason: {}. Will retry.
+org.osgi.framework.BundleException: Uses constraint violation. Unable to resolve resource core-aemaacs.core [core-aemaacs.core [590](R 590.1)] because it is exposed to package 'org.apache.http.client' from resources core-aemaacs.core [core-aemaacs.core [590](R 590.1)] and org.apache.httpcomponents.httpclient [org.apache.httpcomponents.httpclient [60](R 60.0)] via two dependency chains.__Chain 1:_  core-aemaacs.core [core-aemaacs.core [590](R 590.1)]_    import: (&(osgi.wiring.package=org.apache.http.client)(version>=4.5.0.2))_     |_    export: osgi.wiring.package: org.apache.http.client_  core-aemaacs.core [core-aemaacs.core [590](R 590.1)]__Chain 2:_  core-aemaacs.core [core-aemaacs.core [590](R 590.1)]_    import: (&(osgi.wiring.package=org.apache.http.client.protocol)(version>=4.5.0)(!(version>=5.0.0)))_     |_    export: osgi.wiring.package: org.apache.http.client.protocol; uses:=org.apache.http.client_    export: osgi.wiring.package=org.apache.http.client_  org.apache.httpcomponents.httpclient [org.apache.httpcomponents.httpclient [60](R 60.0)] Unresolved requirements: [[core-aemaacs.core [590](R 590.1)] osgi.wiring.package; (&(osgi.wiring.package=org.apache.http.client.protocol)(version>=4.5.0)(!(version>=5.0.0)))]
+	at org.apache.felix.framework.Felix.resolveBundleRevision(Felix.java:4398)
+
+
+
+05.05.2023 09:38:42.546 *ERROR* [[0:0:0:0:0:0:0:1] [1683259721613] GET /content/sivaappa.html HTTP/1.1] com.day.cq.wcm.core.impl.WCMDeveloperModeFilter Error during include of SlingRequestPathInfo: path='/content/sivaappa/jcr:content', selectorString='null', extension='html', suffix='null'
+org.apache.sling.scripting.sightly.SightlyException: Compilation errors in org/apache/sling/scripting/sightly/apps/aem__002d__library/components/structure/page/v1/page/page__002e__html.java:_Line 80, column 3524 : de.volkswagen.coe.aem.core.models.pages.LanguageSiteModel cannot be resolved to a type
+	at org.apache.sling.scripting.sightly.impl.engine.compiled.SlingHTLMasterCompiler.compileSource(SlingHTLMasterCompiler.java:353) [org.apache.sling.scripting.sightly:1.4.20.140]
+	at org.apache.sling.scripting.sightly.impl.engine.compiled.SlingHTLMasterCompiler.compileHTLScript(SlingHTLMasterCompiler.java:252) [org.apache.sling.scripting.sightly:1.4.20.140]
+	at org.apache.sling.scripting.sightly.impl.engine.SightlyScriptEngine.compile(SightlyScriptEngine.java:66) [org.apache.sling.scripting.sightly:1.4.20.140]
+	at org.apache.sling.scripting.core.impl.DefaultSlingScript.call(DefaultSlingScript.java:386) [org.apache.sling.scripting.core:2.4.8]
+	at org.apache.sling.scripting.core.impl.DefaultSlingScript.eval(DefaultSlingScript.java:191) [org.apache.sling.scripting.core:

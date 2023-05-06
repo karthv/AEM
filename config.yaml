@@ -169,3 +169,51 @@ Sling-Model-Packages: \
             infer-all, \
             process-sling-models
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<build>
+  <plugins>
+    <plugin>
+      <groupId>biz.aQute.bnd</groupId>
+      <artifactId>bnd-maven-plugin</artifactId>
+      <version>5.2.0</version>
+      <executions>
+        <execution>
+          <goals>
+            <goal>bnd-process</goal>
+          </goals>
+        </execution>
+      </executions>
+      <configuration>
+        <bnd><![CDATA[
+          Export-Package: com.example;version=${project.version}
+          Import-Package: \
+            javax.annotation;version="[0.0,2)",\
+            org.apache.sling.api.resource,\
+            org.apache.sling.models.annotations,\
+            org.osgi.framework;version="[1.8,2)"
+          Sling-Model-Packages: com.example
+          -dsannotations-options: inherit,remove,javax.inject.Singleton,javax.inject.Scope
+          -dsannotations-plugin: org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}
+          -models: org.apache.sling.bnd.models.ModelsScannerPlugin
+        ]]></bnd>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
+

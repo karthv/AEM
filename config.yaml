@@ -269,3 +269,17 @@ Sling-Model-Packages: \
 </build>
 
 
+
+
+
+<dependency>
+    <groupId>org.apache.sling.scripting.sightly</groupId>
+    <artifactId>org.apache.sling.scripting.sightly.compiler</artifactId>
+    <version>1.4.6</version>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.sling.models</groupId>
+    <artifactId>org.apache.sling.models.api</artifactId>
+    <version>1.4.0</version>
+  </dependency>
+

@@ -341,4 +341,4 @@ Bundle-DocURL:
 	    
 	    12.05.2023 10:57:54.395 *ERROR* [[0:0:0:0:0:0:0:1] [1683869274368] GET /editor.html/content/aem-library/us/en.html HTTP/1.1] com.adobe.cq.msm.ui.servlet.IsSourceRenderCondition path /content/aem-library/us/en.html to check render condition is not valid 
 
-
+https://github.com/heervisscher/htl-examples/blob/master/core/src/main/java/com/adobe/examples/htl/core/service/impl/MyServiceConfiguration.java

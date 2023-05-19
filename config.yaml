@@ -364,3 +364,50 @@ https://github.com/heervisscher/htl-examples/blob/master/core/src/main/java/com/
 				</configuration>
 			</plugin>
 
+
+
+
+
+
+
+<plugin>
+  <groupId>biz.aQute.bnd</groupId>
+  <artifactId>bnd-maven-plugin</artifactId>
+  <version>5.3.0</version>
+  <executions>
+    <execution>
+      <goals>
+        <goal>bnd-process</goal>
+      </goals>
+    </execution>
+  </executions>
+  <configuration>
+    <bnd><![CDATA[
+      # Import any version of javax.inject, to allow running on multiple versions of AEM
+      Import-Package: !org.xhtmlrenderer.pdf.*,\
+        !org.apache.jcp.xml.dsig.internal.dom.*,\
+        !org.apache.xml.security.utils.*,\
+        !com.itextpdf.*,\
+        !org.bouncycastle.*,\
+        !twitter4j.*,\
+        !com.lowagie.*,\
+        !com.apple.mrj.*,\
+        !com.itextpdf.*;javax.inject;version=0.0.0,*
+
+      # Specify Sling Model packages
+      Sling-Model-Packages: de.volkswagen.coe.aem.core
+
+      # Embed dependencies
+      Embed-Dependency: \
+        com.maxmind.geoip2;groupId=com.maxmind.geoip2,\
+        com.itextpdf,\
+        com.lowagie,\
+        com.fasterxml.jackson.core,\
+        com.maxmind.db,\
+        org.xhtmlrenderer,\
+        com.atlassian.commonmark;scope=compile|runtime;type=!pom;inline=false,\
+        jsoup
+    ]]></bnd>
+    <failok>true</failok>
+  </configuration>
+</plugin>

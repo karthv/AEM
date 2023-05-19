@@ -342,3 +342,25 @@ Bundle-DocURL:
 	    12.05.2023 10:57:54.395 *ERROR* [[0:0:0:0:0:0:0:1] [1683869274368] GET /editor.html/content/aem-library/us/en.html HTTP/1.1] com.adobe.cq.msm.ui.servlet.IsSourceRenderCondition path /content/aem-library/us/en.html to check render condition is not valid 
 
 https://github.com/heervisscher/htl-examples/blob/master/core/src/main/java/com/adobe/examples/htl/core/service/impl/MyServiceConfiguration.java
+
+
+
+
+            <plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+						<!-- Import any version of javax.inject, to allow running on multiple versions of AEM -->
+						<Import-Package>!org.xhtmlrenderer.pdf.*;!org.apache.jcp.xml.dsig.internal.dom.*;!org.apache.xml.security.utils.*;!com.itextpdf.*;!org.bouncycastle.*;!twitter4j.*;!com.lowagie.*;!com.apple.mrj.*;!com.itextpdf.*;javax.inject;version=0.0.0,*</Import-Package>
+						<Sling-Model-Packages>
+							de.volkswagen.coe.aem.core
+						</Sling-Model-Packages>
+						<Embed-Transitive>true</Embed-Transitive>
+						<Embed-Dependency>*;groupId=com.maxmind.geoip2|com.itextpdf|com.lowagie|com.fasterxml.jackson.core|com.maxmind.db|org.xhtmlrenderer|com.atlassian.commonmark;scope=compile|runtime;type=!pom;
+							inline=false,jsoup</Embed-Dependency>
+					</instructions>
+				</configuration>
+			</plugin>
+

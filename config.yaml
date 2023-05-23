@@ -411,3 +411,15 @@ https://github.com/heervisscher/htl-examples/blob/master/core/src/main/java/com/
     <failok>true</failok>
   </configuration>
 </plugin>
+
+ 
+
+I would like to migrate the below code from SCR TO OSGI R7 for aemaacs.
+does anyone know that how to migrate the below code to osgi R7?
+
+//    @Property(name = SlingConstants.PROPERTY_ADAPTER_CLASSES)
+//    protected static final String[] ADAPTER_CLASSES = {Country.class.getName()};
+//
+//    @Property(name = SlingConstants.PROPERTY_ADAPTABLE_CLASSES)
+//    protected static final String[] ADAPTABLE_CLASSES = {Resource.class.getName(), Page.class.getName(),
+//            SlingHttpServletRequest.class.getName()};

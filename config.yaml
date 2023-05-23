@@ -498,3 +498,11 @@ public class YourComponent implements ComponentFactory, AdapterFactory {
     }
 }
 
+@Component(service = Servlet.class, property = {
+        "sling.servlet.paths=/path/to/servlet",
+        "sling.servlet.methods=GET",
+        "sling.servlet.extensions=html,json",
+        "sling.servlet.resourceTypes=sling/servlet/default",
+        "sling.servlet.selectors=selector1,selector2"
+})
+

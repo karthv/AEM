@@ -425,3 +425,76 @@ does anyone know that how to migrate the below code to osgi R7?
 //            SlingHttpServletRequest.class.getName()};
 
 https://github.com/Adobe-Consulting-Services/acs-aem-samples/blob/master/core/src/main/java/com/adobe/acs/samples/adapterfactories/impl/SampleAdapterFactory.java
+
+
+
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.adapter.AdapterFactory;
+import org.apache.sling.api.resource.Resource;
+import org.osgi.service.component.ComponentFactory;
+import org.osgi.service.component.ComponentInstance;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
+
+@Component(
+    service = { ComponentFactory.class, AdapterFactory.class },
+    property = {
+        "adaptables=org.apache.sling.api.SlingHttpServletRequest",
+        "adapters=org.apache.sling.api.resource.Resource"
+    }
+)
+public class YourComponent implements ComponentFactory, AdapterFactory {
+
+    private static final String[] DEFAULT_ADAPTER_CLASSES = { Country.class.getName() };
+    private static final String[] DEFAULT_ADAPTABLE_CLASSES = {
+        Resource.class.getName(),
+        Page.class.getName(),
+        SlingHttpServletRequest.class.getName()
+    };
+
+    private String[] adapterClasses;
+    private String[] adaptableClasses;
+
+    @Activate
+    protected void activate() {
+        adapterClasses = DEFAULT_ADAPTER_CLASSES;
+        adaptableClasses = DEFAULT_ADAPTABLE_CLASSES;
+    }
+
+    @Modified
+    protected void modified() {
+        activate();
+    }
+
+    @Deactivate
+    protected void deactivate() {
+        adapterClasses = null;
+        adaptableClasses = null;
+    }
+
+    @Override
+    public Object getInstance() {
+        return this;
+    }
+
+    @Override
+    public void deleteInstance(Object instance) {
+        // Optional: Cleanup resources if needed
+    }
+
+    @Override
+    public <AdapterType> AdapterType getAdapter(Object adaptable, Class<AdapterType> type) {
+        if (adaptable instanceof SlingHttpServletRequest) {
+            Resource resource = ((SlingHttpServletRequest) adaptable).getResource();
+            if (resource != null && type.isAssignableFrom(resource.getClass())) {
+                return (AdapterType) resource;
+            }
+        }
+        return null;
+    }
+}
+

@@ -423,3 +423,5 @@ does anyone know that how to migrate the below code to osgi R7?
 //    @Property(name = SlingConstants.PROPERTY_ADAPTABLE_CLASSES)
 //    protected static final String[] ADAPTABLE_CLASSES = {Resource.class.getName(), Page.class.getName(),
 //            SlingHttpServletRequest.class.getName()};
+
+https://github.com/Adobe-Consulting-Services/acs-aem-samples/blob/master/core/src/main/java/com/adobe/acs/samples/adapterfactories/impl/SampleAdapterFactory.java

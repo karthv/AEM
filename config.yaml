@@ -511,3 +511,7 @@ public class YourComponent implements ComponentFactory, AdapterFactory {
         "metatype=true"
 })
 
+    @Property(unbounded = PropertyUnbounded.ARRAY, label = "Regex Patterns", value = { DEFAULT_REGEX_ALPHANUMERIC, DEFAULT_REGEX_EMAIL,
+            DEFAULT_REGEX_PHONE }, description = "drop down value::regex pattern")
+    private static final String PROPERTY_REGEX_PATTERNS = "coe.regex.patterns";
+

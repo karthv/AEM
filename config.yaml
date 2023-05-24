@@ -534,4 +534,18 @@ public class YourComponent {
     
 }
 
+ @ObjectClassDefinition(name = "Your Component Configuration")
+    public @interface YourComponentConfig {
+
+        @AttributeDefinition(name = "Regex Patterns", description = "drop down value::regex pattern")
+        String[] regexPatterns() default { DEFAULT_REGEX_ALPHANUMERIC, DEFAULT_REGEX_EMAIL, DEFAULT_REGEX_PHONE };
+
+        String DEFAULT_REGEX_ALPHANUMERIC = "default_alphanumeric_regex";
+        String DEFAULT_REGEX_EMAIL = "default_email_regex";
+        String DEFAULT_REGEX_PHONE = "default_phone_regex";
+    }
+    
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.STATIC)
+    private volatile YourComponentConfig config;
+
 

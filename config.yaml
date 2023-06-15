@@ -549,5 +549,7 @@ public class YourComponent {
     private volatile YourComponentConfig config;
     
     https://rules.sonarsource.com/java/RSPEC-2384
+    
+    https://github.com/adobe/aem-enablement/tree/master/AEMAsACloudService/07_Cloud_Ready_Quickstart
 
 

@@ -552,4 +552,9 @@ public class YourComponent {
     
     https://github.com/adobe/aem-enablement/tree/master/AEMAsACloudService/07_Cloud_Ready_Quickstart
 
+    name = "Default Resize Width", label = "Default Resize Width", description = "In case the requested image contains no width information in the request and the image also "
+            + "doesn't have a content policy that defines the allowed rendition widths, then the image processed by this server will be"
+            + " resized to this configured width, for images whose width is larger than this value.", intValue = 1280)
+    private int defaultResizeWidth;
+
 

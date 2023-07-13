@@ -683,7 +683,16 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import com.community.aemlab.core.utils.AEMLABConstants;
 
-@Component(immediate = true, name = "Image Servlet")
+@Component(
+    immediate = true,
+    name = "Image Servlet",
+    property = {
+        "sling.servlet.methods=" + HttpConstants.METHOD_GET,
+        "sling.servlet.selectors=" + ImageServlet.DEFAULT_SELECTOR,
+        "sling.servlet.resourceTypes=" + ImageModel.RESOURCE_TYPE + "," + JcrConstants.NT_UNSTRUCTURED,
+        "sling.servlet.extensions=jpg,jpeg,png,gif"
+    }
+)
 @Designate(ocd = ImageServlet.Configuration.class)
 public class ImageServlet extends SlingSafeMethodsServlet {
 
@@ -719,3 +728,4 @@ public class ImageServlet extends SlingSafeMethodsServlet {
         int defaultResizeWidth() default 1280;
     }
 }
+

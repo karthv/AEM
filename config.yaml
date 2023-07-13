@@ -656,3 +656,66 @@ public class ImageServlet extends SlingSafeMethodsServlet {
     private int defaultResizeWidth;
 
 
+
+
+
+
+
+package com.community.aemlab.core.servlets.sample;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import com.community.aemlab.core.utils.AEMLABConstants;
+
+@Component(immediate = true, name = "Image Servlet")
+@Designate(ocd = ImageServlet.Configuration.class)
+public class ImageServlet extends SlingSafeMethodsServlet {
+
+    private static final long serialVersionUID = 1L;
+
+    private int defaultResizeWidth;
+
+    @Override
+    protected void doGet(final SlingHttpServletRequest req, final SlingHttpServletResponse resp)
+            throws ServletException, IOException {
+        PrintWriter out = resp.getWriter();
+        resp.setContentType(AEMLABConstants.CONTENTTYPE_TXT_HTML);
+
+        if (enabled)
+            out.write("Servlet3 is enabled  -- >" + req.getPathInfo());
+        else
+            out.write("Servlet3 is not enabled");
+    }
+
+    @Activate
+    @Modified
+    protected void activate(Configuration config) {
+        defaultResizeWidth = config.defaultResizeWidth();
+    }
+
+    @ObjectClassDefinition(name = "Image Servlet Configuration", description = "Servlet configuration for handling image requests.")
+    public @interface Configuration {
+        @AttributeDefinition(
+            name = "Default Resize Width",
+            description = "Default width used for image resizing.",
+            type = AttributeType.INTEGER
+        )
+        int defaultResizeWidth() default 1280;
+    }
+}

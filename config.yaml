@@ -58,296 +58,168 @@ projects:
       
    
 	
-	
-	
-	<?xml version="1.0" encoding="UTF-8"?>
-<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
-    jcr:primaryType="nt:unstructured"
-    jcr:title="System Notification"
-    sling:resourceType="cq/gui/components/authoring/dialog"
-    helpPath="en/cq/current/wcm/default_components.html#Image">
-    <content
-        jcr:primaryType="nt:unstructured"
-        sling:resourceType="granite/ui/components/foundation/container">
-        <layout
-            jcr:primaryType="nt:unstructured"
-            sling:resourceType="granite/ui/components/foundation/layouts/tabs"
-            type="nav"/>
-        <items jcr:primaryType="nt:unstructured">
-            <text jcr:primaryType="nt:unstructured" jcr:title="Text" sling:resourceType="granite/ui/components/foundation/section">
-                <layout jcr:primaryType="nt:unstructured" margin="{Boolean}false" sling:resourceType="granite/ui/components/foundation/layouts/fixedcolumns" />
-                <items jcr:primaryType="nt:unstructured">
-                    <column jcr:primaryType="nt:unstructured" sling:resourceType="granite/ui/components/foundation/container">
-                        <items jcr:primaryType="nt:unstructured">
-							<enabled
-								jcr:primaryType="nt:unstructured"
-								sling:resourceType="granite/ui/components/coral/foundation/form/switch"
-								fieldLabel="Enable System Notification"
-								checked="{Boolean}true"
-								uncheckedValue="{Boolean}false"
-								fieldDescription="If disabled, the System Notification will not be displayed on any page"
-								name="./enabled"/>
-                        	<headline
-								jcr:primaryType="nt:unstructured"
-								sling:resourceType="granite/ui/components/foundation/form/textfield"
-								fieldDescription="Headline"
-								fieldLabel="Headline"
-								name="./headline" />
-							<copytext
-								jcr:primaryType="nt:unstructured"
-								sling:resourceType="cq/gui/components/authoring/dialog/richtext"
-								fieldLabel="Copytext"
-								name="./copytext"
-								useFixedInlineToolbar="{Boolean}true">
-		                        <rtePlugins jcr:primaryType="nt:unstructured">
-		                            <links
-		                                jcr:primaryType="nt:unstructured"
-		                                features="*"/>
-		                        </rtePlugins>
-		                        <uiSettings jcr:primaryType="nt:unstructured">
-		                            <cui jcr:primaryType="nt:unstructured">
-		                                <inline
-		                                    jcr:primaryType="nt:unstructured"
-		                                    toolbar="[links#modifylink,links#unlink,links#anchor]"/>
-		                                <fullscreen
-		                                    jcr:primaryType="nt:unstructured"
-		                                    toolbar="[links#modifylink,links#unlink,links#anchor]"/>
-		                            </cui>
-		                        </uiSettings>
-							</copytext>
-                        </items>
-                    </column>
-                </items>
-            </text>
-            <links jcr:primaryType="nt:unstructured" jcr:title="Links" sling:resourceType="granite/ui/components/foundation/section">
-                <layout jcr:primaryType="nt:unstructured" margin="{Boolean}false" sling:resourceType="granite/ui/components/foundation/layouts/fixedcolumns" />
-                <items jcr:primaryType="nt:unstructured">
-                    <column jcr:primaryType="nt:unstructured" sling:resourceType="granite/ui/components/foundation/container">
-                        <items jcr:primaryType="nt:unstructured">
-                        	<linklist
-                                jcr:primaryType="nt:unstructured"
-                                sling:resourceType="granite/ui/components/foundation/form/multifield"
-                                class="full-width"
-								eaem-nested=""
-                                fieldDescription="Click 'Add' to add a new Link"
-                                fieldLabel="Links">
-                                <field jcr:primaryType="nt:unstructured"
-									   jcr:title="Link Item"
-									   sling:resourceType="granite/ui/components/foundation/form/fieldset"
-									   name="./links">
-                                    <layout
-                                        jcr:primaryType="nt:unstructured"
-                                        sling:resourceType="granite/ui/components/foundation/layouts/fixedcolumns"
-                                        method="absolute"/>
-                                    <items jcr:primaryType="nt:unstructured">
-                                        <column
-                                            jcr:primaryType="nt:unstructured"
-                                            sling:resourceType="granite/ui/components/foundation/container">
-                                            <items jcr:primaryType="nt:unstructured">
-                                           		<linktext
-                                                    jcr:primaryType="nt:unstructured"
-                                                    sling:resourceType="granite/ui/components/foundation/form/textfield"
-                                                    fieldDescription="Enter Link Text"
-                                                    fieldLabel="Link Text"
-                                                    name="./linktext" />
-                                                <linktarget
-                                                    jcr:primaryType="nt:unstructured"
-                                                    sling:resourceType="granite/ui/components/foundation/form/pathbrowser"
-                                                    fieldDescription="Select Path"
-                                                    fieldLabel="Link Target"
-                                                    name="./linktarget"
-                                                    rootPath="/content" />
-												<linkbehaviour jcr:primaryType="nt:unstructured"
-												    name="./linkbehaviour"
-												    fieldLabel="Link Behaviour"
-												    sling:resourceType="granite/ui/components/foundation/form/select">
-												    <items jcr:primaryType="nt:unstructured">
-												        <samewindow jcr:primaryType="nt:unstructured"
-												            text="Same Window"
-												            value=""/>
-												        <newwindow jcr:primaryType="nt:unstructured"
-												            text="New Window"
-												            value="_blank"/>
-												    </items>
-												</linkbehaviour>
-                                            </items>
-                                        </column>
-                                    </items>
-								</field>
-							</linklist>
-            			</items>
-            		</column>
-            	</items>
-			</links>
-		</items>
-    </content>
-</jcr:root>
+import com.day.cq.replication.Publication;
+import com.day.cq.replication.ReplicationActionType;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ModifiableValueMap;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.jcr.resource.JcrResourceResolver;
+import org.apache.sling.serviceusermapping.ServiceUserMapped;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javax.transaction.TransactionManager;
 
 
-<?xml version="1.0" encoding="UTF-8"?>
-<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
-          xmlns:cq="http://www.day.com/jcr/cq/1.0"
-          xmlns:jcr="http://www.jcp.org/jcr/1.0"
-          xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
-          jcr:primaryType="nt:unstructured"
-          jcr:title="System Notification"
-          sling:resourceType="cq/gui/components/authoring/dialog"
-          helpPath="en/cq/current/wcm/default_components.html#Image">
+//final version
+@Component(service = javax.servlet.Servlet.class, property = {
+        "sling.servlet.paths=/rename-assets",
+        "sling.servlet.methods=GET"
+})
+public class RenameAssetsServlet extends SlingSafeMethodsServlet {
 
-    <content
-            jcr:primaryType="nt:unstructured"
-            sling:resourceType="granite/ui/components/coral/foundation/container">
+    private static final Logger log = LoggerFactory.getLogger(RenameAssetsServlet.class);
 
-        <items jcr:primaryType="nt:unstructured">
+    @Reference
+    private JcrResourceResolver resourceResolver;
 
-            <text
-                    jcr:primaryType="nt:unstructured"
-                    jcr:title="Text"
-                    sling:resourceType="granite/ui/components/coral/foundation/container">
+    @Reference
+    private ServiceUserMapped serviceUserMapped;
 
-                <items jcr:primaryType="nt:unstructured">
+    @Reference
+    private TransactionManager transactionManager;
 
-                    <column jcr:primaryType="nt:unstructured"
-                            sling:resourceType="granite/ui/components/coral/foundation/container">
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws ServletException, IOException {
 
-                        <items jcr:primaryType="nt:unstructured">
+        // Get parameters
+        String dynamicPath = request.getParameter("dynamicPath");
+        int poolSize = Integer.parseInt(request.getParameter("poolSize"));
 
-                            <enabled
-                                    jcr:primaryType="nt:unstructured"
-                                    sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
-                                    fieldLabel="Enable System Notification"
-                                    checked="{Boolean}true"
-                                    uncheckedValue="{Boolean}false"
-                                    fieldDescription="If disabled, the System Notification will not be displayed on any page"
-                                    name="./enabled"/>
+        try {
+            // Validate parameters
+            if (dynamicPath == null || dynamicPath.isEmpty() || poolSize <= 0) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid parameters");
+                return;
+            }
 
-                            <headline
-                                    jcr:primaryType="nt:unstructured"
-                                    sling:resourceType="granite/ui/components/coral/foundation/form/textfield"
-                                    fieldDescription="Headline"
-                                    fieldLabel="Headline"
-                                    name="./headline" />
+            // Find all assets under the dynamic path
+            List<String> assetPaths = new ArrayList<>();
+            resourceResolver.findResources(dynamicPath, "dam:Asset", true).forEach(resource -> {
+                assetPaths.add(resource.getPath());
+            });
 
-                            <copytext
-                                    jcr:primaryType="nt:unstructured"
-                                    sling:resourceType="granite/ui/components/coral/foundation/form/rte"
-                                    fieldLabel="Copytext"
-                                    name="./copytext"
-                                    useFixedInlineToolbar="{Boolean}true">
-                                <rtePlugins jcr:primaryType="nt:unstructured">
-                                    <links
-                                            jcr:primaryType="nt:unstructured"
-                                            features="*"/>
-                                </rtePlugins>
-                                <uiSettings jcr:primaryType="nt:unstructured">
-                                    <cui jcr:primaryType="nt:unstructured">
-                                        <inline
-                                                jcr:primaryType="nt:unstructured"
-                                                toolbar="[links#modifylink,links#unlink,links#anchor]"/>
-                                        <fullscreen
-                                                jcr:primaryType="nt:unstructured"
-                                                toolbar="[links#modifylink,links#unlink,links#anchor]"/>
-                                    </cui>
-                                </uiSettings>
-                            </copytext>
+            // Start a transaction to ensure atomicity of operations
+            transactionManager.begin();
 
-                        </items>
+            // Create a thread pool with a fixed number of threads
+            ExecutorService executor = Executors.newFixedThreadPool(poolSize);
 
-                    </column>
+            // Process assets using threads
+            for (String assetPath : assetPaths) {
+                executor.execute(() -> {
+                    try {
+                        renameAndProcess(assetPath);
+                    } catch (Exception e) {
+                        log.error("Error processing asset: " + assetPath, e);
+                    }
+                });
+            }
 
-                </items>
+            // Shutdown the executor once all tasks are complete
+            executor.shutdown();
 
-            </text>
+            // Wait for all threads to finish
+            while (!executor.isTerminated()) {
+                // Do nothing, wait for threads to finish
+            }
 
-            <links
-                    jcr:primaryType="nt:unstructured"
-                    jcr:title="Links"
-                    sling:resourceType="granite/ui/components/coral/foundation/container">
+            // Commit transaction after successful completion of operations
+            transactionManager.commit();
 
-                <items jcr:primaryType="nt:unstructured">
+            // Log the result
+            log.info("All assets were processed successfully.");
+            sendStatusUpdate(response, "All assets were processed successfully.");
 
-                    <column jcr:primaryType="nt:unstructured"
-                            sling:resourceType="granite/ui/components/coral/foundation/container">
+        } catch (Exception e) {
+            // In case of an error, rollback the transaction to maintain data integrity
+            transactionManager.rollback();
 
-                        <items jcr:primaryType="nt:unstructured">
+            // Log the error and return an internal server error response
+            log.error("Error occurred during asset processing.", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal Server Error");
+        }
+    }
 
-                            <linklist
-                                    jcr:primaryType="nt:unstructured"
-                                    sling:resourceType="granite/ui/components/coral/foundation/form/multifield"
-                                    class="full-width"
-                                    eaem-nested=""
-                                    fieldDescription="Click 'Add' to add a new Link"
-                                    fieldLabel="Links">
+    private void renameAndProcess(String assetPath) {
+        try {
+            // Get the asset resource
+            Resource assetResource = resourceResolver.getResource(assetPath);
 
-                                <field jcr:primaryType="nt:unstructured"
-                                       jcr:title="Link Item"
-                                       sling:resourceType="granite/ui/components/coral/foundation/form/fieldset"
-                                       name="./links">
+            if (assetResource != null) {
+                // Get the old asset name
+                String oldName = assetResource.getName();
 
-                                    <items jcr:primaryType="nt:unstructured">
+                // Replace dots in the asset name with hyphens
+                String newName = oldName.replace(".", "-");
 
-                                        <column jcr:primaryType="nt:unstructured"
-                                                sling:resourceType="granite/ui/components/coral/foundation/container">
+                // Rename the asset
+                ModifiableValueMap properties = assetResource.adaptTo(ModifiableValueMap.class);
+                properties.put("jcr:content/jcr:title", "New Title");
+                properties.put("jcr:content/jcr:description", "New Description");
+                properties.put("jcr:content/metadata/dc:title", "New Title");
+                properties.put("jcr:content/metadata/dc:description", "New Description");
+                properties.put("jcr:content/metadata/dam:title", "New Title");
+                properties.put("jcr:content/metadata/dam:description", "New Description");
 
-                                            <items jcr:primaryType="nt:unstructured">
+                // Save the changes
+                Session session = resourceResolver.adaptTo(Session.class);
+                session.save();
 
-                                                <linktext
-                                                        jcr:primaryType="nt:unstructured"
-                                                        sling:resourceType="granite/ui/components/coral/foundation/form/textfield"
-                                                        fieldDescription="Enter Link Text"
-                                                        fieldLabel="Link Text"
-                                                        name="./linktext" />
+                // Republish the page if it's already published
+                serviceUserMapped.getServiceResourceResolver("cds-service-user").ifPresent(cdsResolver -> {
+                    try {
+                        Publication publication = cdsResolver.adaptTo(Publication.class);
+                        if (publication.isPublished(assetPath)) {
+                            replicator.replicate(ReplicationActionType.ACTIVATE, assetPath);
+                            log.info("Page republished: " + assetPath);
+                        }
+                    } catch (RepositoryException e) {
+                        log.error("Error republishing page: " + assetPath, e);
+                    }
+                });
 
-                                                <linktarget
-                                                        jcr:primaryType="nt:unstructured"
-                                                        sling:resourceType="granite/ui/components/coral/foundation/form/pathbrowser"
-                                                        fieldDescription="Select Path"
-                                                        fieldLabel="Link Target"
-                                                        name="./linktarget"
-                                                        rootPath="/content" />
+                log.info("Asset and references updated: " + assetPath);
+            }
 
-                                                <linkbehaviour jcr:primaryType="nt:unstructured"
-                                                               name="./linkbehaviour"
-                                                               fieldLabel="Link Behaviour"
-                                                               sling:resourceType="granite/ui/components/coral/foundation/form/select">
+        } catch (Exception e) {
+            log.error("Error processing asset and republishing page: " + assetPath, e);
+        }
+    }
 
-                                                    <items jcr:primaryType="nt:unstructured">
+    private void sendStatusUpdate(SlingHttpServletResponse response, String message) throws IOException {
+        response.setContentType("text/plain");
+        response.getWriter().write(message);
+    }
+}
 
-                                                        <samewindow jcr:primaryType="nt:unstructured"
-                                                                    text="Same Window"
-                                                                    value=""/>
 
-                                                        <newwindow jcr:primaryType="nt:unstructured"
-                                                                    text="New Window"
-                                                                    value="_blank"/>
 
-                                                    </items>
 
-                                                </linkbehaviour>
-
-                                            </items>
-
-                                        </column>
-
-                                    </items>
-
-                                </field>
-
-                            </linklist>
-
-                        </items>
-
-                    </column>
-
-                </items>
-
-            </links>
-
-        </items>
-
-    </content>
-
-</jcr:root>
 
 
 	

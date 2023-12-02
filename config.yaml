@@ -507,6 +507,34 @@ private org.w3c.dom.Document convertJsoupToW3CDocument(Document jsoupDocument) t
     return w3cDocument;
 }
 
+  private Document preprocessHtml(String htmlString, SlingHttpServletRequest request, String[] pageAttributes) {
+        Document document = Jsoup.parse(htmlString);
+
+        // Additional preprocessing logic
+        addDocumentStyle(document, pageAttributes);
+        addAnchorLinkStyle(document, request);
+
+        String[] removeAttribute = {"div.image-wide", "video.movie__loop"};
+
+        for (String attr : removeAttribute) {
+            document.select(attr).remove();
+        }
+
+        Elements coeElements = document.select("div[class^='codee-']");
+        coeElements.removeAll(document.select("div.codee-image"));
+
+        return document;
+    }
+
+    private void configureRenderer(ITextRenderer renderer, ResourceResolver resourceResolver) {
+        try {
+            renderer.getSharedContext().setReplacedElementFactory(new MediaReplacedElementFactory(
+                    renderer.getSharedContext().getReplacedElementFactory(), resourceResolver, null));
+        } catch (Exception e) {
+            LOG.error("Error configuring PDF renderer", e);
+        }
+    }
+
 	
 	
 

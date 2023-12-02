@@ -535,6 +535,28 @@ private org.w3c.dom.Document convertJsoupToW3CDocument(Document jsoupDocument) t
         }
     }
 
+
+
+
+       private org.w3c.dom.Document convertJsoupToW3CDocument(Document jsoupDocument) {
+        try {
+            DOMImplementationRegistry registry = DOMImplementationRegistry.newInstance();
+            DOMImplementation domImpl = registry.getDOMImplementation("LS");
+
+            DOMImplementationLS implLS = (DOMImplementationLS) domImpl.getFeature("LS", "3.0");
+            LSSerializer serializer = implLS.createLSSerializer();
+
+            org.w3c.dom.Document w3cDocument = implLS.createLSInput().getCharacterStream();
+            StringWriter writer = new StringWriter();
+            serializer.write(jsoupDocument, implLS.createLSOutput().getCharacterStream());
+            serializer.writeToURI(jsoupDocument, implLS.createLSOutput());
+
+            return w3cDocument;
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting JSoup Document to W3C Document", e);
+        }
+    }
+
 	
 	
 

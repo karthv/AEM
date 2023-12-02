@@ -557,7 +557,87 @@ private org.w3c.dom.Document convertJsoupToW3CDocument(Document jsoupDocument) t
         }
     }
 
-	
+	final
+
+
+ import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.xhtmlrenderer.pdf.ITextRenderer;
+import org.thymeleaf.dom.w3c.W3CDom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.*;
+import java.util.Arrays;
+
+public class PdfGenerator {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PdfGenerator.class);
+
+    public static InputStream generatePDF(String htmlString, HttpServletRequest request,
+                                          ResourceResolver resourceResolver, File outputFile, String[] pageAttributes) {
+        try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+            ITextRenderer renderer = createPdfRenderer(resourceResolver);
+
+            Document document = preprocessHtml(htmlString, request, pageAttributes);
+
+            org.w3c.dom.Document pdfDocument = convertToW3CDocument(document);
+
+            setRendererDocument(renderer, pdfDocument);
+
+            renderer.createPDF(fileOutputStream);
+            renderer.finishPDF();
+
+            return new FileInputStream(outputFile);
+        } catch (Exception e) {
+            LOG.error("Error generating PDF content", e);
+        }
+        return null;
+    }
+
+    private static ITextRenderer createPdfRenderer(ResourceResolver resourceResolver) {
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.getSharedContext().setReplacedElementFactory(new MediaReplacedElementFactory(
+                renderer.getSharedContext().getReplacedElementFactory(), resourceResolver, null));
+        return renderer;
+    }
+
+    private static Document preprocessHtml(String htmlString, HttpServletRequest request, String[] pageAttributes) {
+        Document document = Jsoup.parse(htmlString);
+
+        // Apply styles directly in the HTML content or add logic here
+
+        // Remove unwanted elements
+        removeElements(document, "div.image-wide", "video.movie__loop");
+
+        // Remove codee image elements
+        removeCodeeImageElements(document);
+
+        return document;
+    }
+
+    private static void removeElements(Document document, String... selectors) {
+        Arrays.stream(selectors)
+                .flatMap(selector -> document.select(selector).stream())
+                .forEach(Element::remove);
+    }
+
+    private static void removeCodeeImageElements(Document document) {
+        Elements coeElements = document.select("div[class^='codee-']");
+        coeElements.removeAll(document.select("div.codee-image"));
+    }
+
+    private static org.w3c.dom.Document convertToW3CDocument(Document document) {
+        return new W3CDom().fromJsoup(document);
+    }
+
+    private static void setRendererDocument(ITextRenderer renderer, org.w3c.dom.Document pdfDocument) {
+        renderer.setDocument(pdfDocument, null);
+        renderer.layout();
+    }
+}
+
 	
 
 

@@ -220,7 +220,86 @@ public class RenameAssetsServlet extends SlingSafeMethodsServlet {
 
 
 
+{
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = 1L;
 
+	/** The Constant LOG. */
+	private static final Logger LOG = LoggerFactory.getLogger(FileExporterServlet.class);
+
+	/** The request response factory. */
+	@Reference
+	private transient RequestResponseFactory requestResponseFactory;
+
+	/** The request processor. */
+	@Reference
+	private transient SlingRequestProcessor requestProcessor;
+
+	@Reference
+	private transient FileExporterService fileExporterService;
+
+	/** The rejection handler. */
+	transient RejectedExecutionHandlerImpl rejectionHandler = new RejectedExecutionHandlerImpl();
+
+	/** The thread factory. */
+	transient ThreadFactory threadFactory = Executors.defaultThreadFactory();
+
+	/** The executor service. */
+	ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
+			Runtime.getRuntime().availableProcessors(),
+			fileExporterService == null ? 0 : fileExporterService.getKeepAliveTimeThread(), TimeUnit.MILLISECONDS,
+			new LinkedBlockingQueue<>(fileExporterService == null ? 10 : fileExporterService.getThreadCount()),
+			threadFactory, rejectionHandler);
+
+	/**
+	 * Do get.
+	 *
+	 * @param request  the request
+	 * @param response the response
+	 * @throws ServletException the servlet exception
+	 * @throws IOException      Signals that an I/O exception has occurred.
+	 */
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+			throws ServletException, IOException {
+
+		String url = request.getRequestPathInfo().getResourcePath() + HTML_EXTENSION;
+		String pagePath = request.getRequestPathInfo().getResourcePath();
+		String pageTitle = pagePath.substring(pagePath.lastIndexOf(FORWARD_SLASH) + 1);
+		String pdfFileName = pageTitle + PDF_EXTENSION;
+		String htmlFileName = pageTitle + HTML_EXTENSION;
+		ResourceResolver resolver = request.getResourceResolver();
+		HttpServletRequest httpRequest = requestResponseFactory.createRequest(HttpConstants.METHOD_GET, url);
+
+		File outputFile = File.createTempFile(pdfFileName, null);
+		File zipFile = File.createTempFile(pageTitle, ZIP_EXTENSION);
+
+		try (FileInputStream fileInputStream = new FileInputStream(zipFile);
+			 FileOutputStream fileOutputStream = new FileOutputStream(zipFile);
+			 ZipOutputStream zipOutputStream = new ZipOutputStream(fileOutputStream)) {
+			Future<?> future = executorService.submit(new FileExporterExecutor(htmlFileName, resolver, pageTitle,
+					request, response, fileInputStream, outputFile, zipFile, pdfFileName, httpRequest, pagePath,
+					zipOutputStream, requestProcessor, requestResponseFactory));
+			try {
+				future.get();
+			} catch (InterruptedException | ExecutionException e) {
+				LOG.error(" InterruptedException Exception occurred in future:: '{}' ", e.getMessage());
+				Thread.currentThread().interrupt();
+			}
+		} catch (RejectedExecutionException e) {
+			LOG.error("RejectedExecutionException Exception occurred in future:: '{}' ", e.getMessage());
+		} finally {
+			try {
+				Files.deleteIfExists(Paths.get(zipFile.getAbsolutePath()));
+				Files.deleteIfExists(Paths.get(outputFile.getAbsolutePath()));
+			} catch (IOException e) {
+				LOG.error("IOException occurred'{}':: ", e.getMessage());
+			}
+		}
+
+	}
+
+}
 
 	
 	

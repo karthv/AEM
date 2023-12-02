@@ -443,7 +443,70 @@ public class FileExporterServlet extends SlingSafeMethodsServlet {
 		}
 		return pdfInput;
 	}
-	
+
+
+
+
+ import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.bootstrap.DOMImplementationRegistry;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSSerializer;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+
+// ...
+
+public InputStream generatePdf(String htmlString, SlingHttpServletRequest request,
+                               ResourceResolver resourceResolver, File outputFile, String[] pageAttributes) {
+    try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+        ITextRenderer renderer = new ITextRenderer();
+
+        // Load HTML file
+        Document document = preprocessHtml(htmlString, request, pageAttributes);
+
+        // Convert JSoup Document to W3C Document
+        org.w3c.dom.Document pdfDocument = convertJsoupToW3CDocument(document);
+
+        configureRenderer(renderer, resourceResolver);
+
+        renderer.setDocument(pdfDocument, null);
+        renderer.layout();
+        renderer.createPDF(fileOutputStream);
+        renderer.finishPDF();
+
+        return new FileInputStream(outputFile);
+    } catch (Exception e) {
+        LOG.error("Error generating PDF content", e);
+        // Handle the error as needed
+    }
+
+    return null;
+}
+
+private org.w3c.dom.Document convertJsoupToW3CDocument(Document jsoupDocument) throws ParserConfigurationException {
+    DOMImplementationRegistry registry;
+    try {
+        registry = DOMImplementationRegistry.newInstance();
+    } catch (Exception e) {
+        throw new RuntimeException("Error initializing DOMImplementationRegistry", e);
+    }
+
+    DOMImplementationLS domImplementationLS = (DOMImplementationLS) registry.getDOMImplementation("LS");
+    org.w3c.dom.Document w3cDocument = domImplementationLS.createLSInput().getCharacterStream();
+
+    StringWriter writer = new StringWriter();
+    LSSerializer lsSerializer = domImplementationLS.createLSSerializer();
+    lsSerializer.write(jsoupDocument, domImplementationLS.createLSOutput().getCharacterStream());
+    lsSerializer.writeToURI(jsoupDocument, domImplementationLS.createLSOutput());
+
+    return w3cDocument;
+}
+
 	
 	
 

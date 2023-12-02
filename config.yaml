@@ -409,7 +409,40 @@ public class FileExporterServlet extends SlingSafeMethodsServlet {
 	
 	
 	
-	
+		public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request,
+										ResourceResolver resourceResolver, File outputFile, String[] pageattributes) throws IOException {
+		org.w3c.dom.Document pdfDocument = null;
+		InputStream pdfInput = null;
+		try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+			ITextRenderer renderer = new ITextRenderer();
+			// Load HTML file
+			Document document = addDocumentStyle(htmlString, pageattributes);
+			addAnchorLinkStyle(document, request);
+			String[] removeAttribute = { "div.image-wide","video.movie__loop" };
+
+			for (String attr : removeAttribute) {
+				for (Element removeElement : document.select(attr)) {
+					removeElement.remove();
+				}
+			}
+			Elements coeElements = document.select("div[class^='codee-']");
+			coeElements.removeAll(document.select("div.codee-image"));
+
+			W3CDom w3cDom = new W3CDom();
+			pdfDocument = w3cDom.fromJsoup(document);
+			renderer.getSharedContext().setReplacedElementFactory(new MediaReplacedElementFactory(
+					renderer.getSharedContext().getReplacedElementFactory(), resourceResolver, null));
+			renderer.setDocument(pdfDocument, null);
+			renderer.layout();
+			renderer.createPDF(fileOutputStream);
+			renderer.finishPDF();
+
+			pdfInput = new FileInputStream(outputFile);
+		} catch (Exception e) {
+			LOG.error("Could not generate PDF content '{}' ", e.getMessage());
+		}
+		return pdfInput;
+	}
 	
 	
 	

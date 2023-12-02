@@ -301,6 +301,111 @@ public class RenameAssetsServlet extends SlingSafeMethodsServlet {
 
 }
 
+
+
+testing
+
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.concurrent.*;
+
+@Component(
+        immediate = true,
+        service = javax.servlet.Servlet.class,
+        property = {
+                "sling.servlet.paths=/bin/file-exporter",
+                "sling.servlet.extensions=html"
+        }
+)
+public class FileExporterServlet extends SlingSafeMethodsServlet {
+
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(FileExporterServlet.class);
+
+    @Reference
+    private transient RequestResponseFactory requestResponseFactory;
+
+    @Reference
+    private transient SlingRequestProcessor requestProcessor;
+
+    @Reference
+    private transient FileExporterService fileExporterService;
+
+    private ExecutorService executorService;
+
+    @Activate
+    protected void activate() {
+        int corePoolSize = Runtime.getRuntime().availableProcessors();
+        int maxPoolSize = Runtime.getRuntime().availableProcessors();
+        long keepAliveTime = fileExporterService == null ? 0 : fileExporterService.getKeepAliveTimeThread();
+        int queueCapacity = fileExporterService == null ? 10 : fileExporterService.getThreadCount();
+
+        executorService = new ThreadPoolExecutor(
+                corePoolSize, maxPoolSize, keepAliveTime, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(queueCapacity),
+                Executors.defaultThreadFactory(),
+                new RejectedExecutionHandlerImpl()
+        );
+    }
+
+    @Deactivate
+    protected void deactivate() {
+        executorService.shutdown();
+    }
+
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws ServletException, IOException {
+
+        String url = request.getRequestPathInfo().getResourcePath() + ".html";
+        String pagePath = request.getRequestPathInfo().getResourcePath();
+        String pageTitle = pagePath.substring(pagePath.lastIndexOf('/') + 1);
+        String pdfFileName = pageTitle + ".pdf";
+        String htmlFileName = pageTitle + ".html";
+        ResourceResolver resolver = request.getResourceResolver();
+        HttpServletRequest httpRequest = requestResponseFactory.createRequest(HttpConstants.METHOD_GET, url);
+
+        File outputFile = File.createTempFile(pdfFileName, null);
+        File zipFile = File.createTempFile(pageTitle, ".zip");
+
+        try (FileInputStream fileInputStream = new FileInputStream(zipFile);
+             FileOutputStream fileOutputStream = new FileOutputStream(zipFile);
+             ZipOutputStream zipOutputStream = new ZipOutputStream(fileOutputStream)) {
+
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                new FileExporterExecutor(htmlFileName, resolver, pageTitle,
+                        request, response, fileInputStream, outputFile, zipFile, pdfFileName, httpRequest, pagePath,
+                        zipOutputStream, requestProcessor, requestResponseFactory
+                ).run();
+            }, executorService);
+
+            // Wait for the completion of the task (optional)
+            future.join();
+
+        } catch (RejectedExecutionException e) {
+            LOG.error("RejectedExecutionException Exception occurred in future:: '{}'", e.getMessage());
+        } finally {
+            try {
+                Files.deleteIfExists(Paths.get(zipFile.getAbsolutePath()));
+                Files.deleteIfExists(Paths.get(outputFile.getAbsolutePath()));
+            } catch (IOException e) {
+                LOG.error("IOException occurred'{}':: ", e.getMessage());
+            }
+        }
+    }
+}
+
+
 	
 	
 	

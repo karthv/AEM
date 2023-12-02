@@ -638,6 +638,23 @@ public class PdfGenerator {
     }
 }
 
+getstream method
+
+public static String getRenditionUrl(Asset asset, String renditionName) {
+        Rendition rendition = asset.getRendition(renditionName);
+        if (rendition != null) {
+            return rendition.getPath();
+        } else {
+            return null; // Handle the case where the rendition doesn't exist
+        }
+    }
+
+    solution for this
+
+    // Get the URL of a rendition (e.g., web rendition)
+String renditionUrl = AssetUtility.getRenditionUrl(asset, "cq5dam.web.1280.1280.jpeg");
+
+
 	
 
 

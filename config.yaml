@@ -714,4 +714,33 @@ public static String getDomain(SlingHttpServletRequest request) {
     return scheme + "://" + serverName; // Combine scheme and server name to form the domain
 }
 
+public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request,
+                                    ResourceResolver resourceResolver, File outputFile, String[] pageAttributes) {
+    try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+        ITextRenderer renderer = new ITextRenderer();
+        configureRenderer(renderer, request, resourceResolver);
+
+        Document document = createStyledDocument(htmlString, pageAttributes, request);
+        removeElements(document, "div.image-wide", "video.movie__loop");
+
+        Elements coeElements = document.select("div[class^='codee-']");
+        coeElements.removeAll(document.select("div.codee-image"));
+
+        // Convert Jsoup Document to XHTML
+        String xhtmlContent = XHTMLRendererUtil.convertToXhtml(document.html());
+
+        // Set the XHTML content to ITextRenderer
+        renderer.setDocumentFromString(xhtmlContent);
+
+        renderer.layout();
+        renderer.createPDF(fileOutputStream);
+        renderer.finishPDF();
+
+        return new FileInputStream(outputFile);
+    } catch (Exception e) {
+        LOG.error("Could not generate PDF content '{}'", e.getMessage());
+        return null;
+    }
+}
+
 

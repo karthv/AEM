@@ -668,3 +668,43 @@ String renditionUrl = AssetUtility.getRenditionUrl(asset, "cq5dam.web.1280.1280.
 		return domain;
 	}
 
+ import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+
+public class DomainUtil {
+
+    private static final String CONTENT_NODE = "/content/";
+
+    public static String getDomain(SlingHttpServletRequest request) {
+        String domain = "";
+
+        Resource resource = request.getResource();
+        Page currentPage = resource.adaptTo(Page.class);
+
+        if (currentPage != null) {
+            domain = currentPage.getProperties().get("domain", String.class);
+
+            if (StringUtils.isEmpty(domain)) {
+                domain = getParentPageDomain(currentPage);
+            }
+        }
+
+        return domain;
+    }
+
+    private static String getParentPageDomain(Page currentPage) {
+        String domain = "";
+
+        Page parentPage = currentPage.getParent();
+
+        if (parentPage != null) {
+            domain = parentPage.getProperties().get("domain", String.class);
+        }
+
+        return domain;
+    }
+}
+
+

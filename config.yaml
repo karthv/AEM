@@ -656,5 +656,15 @@ String renditionUrl = AssetUtility.getRenditionUrl(asset, "cq5dam.web.1280.1280.
 
 
 	
-
+	public static String getDomain(SlingHttpServletRequest request) {
+		String domain = "";
+		Resource resource = request.getResource();
+		InheritanceValueMap iProperties = new HierarchyNodeInheritanceValueMap(resource);
+		domain = iProperties.getInherited("domain", "");
+		if (StringUtils.isEmpty(domain)) {
+			String pageURL = request.getRequestURL().toString();
+			domain = StringUtils.substringBefore(pageURL, CONTENT_NODE);
+		}
+		return domain;
+	}
 

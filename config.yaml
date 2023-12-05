@@ -744,3 +744,43 @@ public static InputStream outputPDF(String htmlString, SlingHttpServletRequest r
 }
 
 
+testing
+
+
+public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request, File outputFile, String[] pageAttributes) throws IOException {
+    InputStream pdfInput = null;
+    try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+        ITextRenderer renderer = new ITextRenderer();
+
+        Document document = addDocumentStyle(htmlString, pageAttributes);
+        addAnchorLinkStyle(document, request);
+
+        String[] removeAttribute = { "div.image-wide", "video.movie__loop" };
+        for (String attr : removeAttribute) {
+            for (Element removeElement : document.select(attr)) {
+                removeElement.remove();
+            }
+        }
+
+        Elements coeElements = document.select("div[class^='codee-']");
+        coeElements.removeAll(document.select("div.codee-image"));
+
+        // Use setDocumentFromString to directly set HTML content
+        renderer.setDocumentFromString(document.outerHtml());
+
+        renderer.getSharedContext().setReplacedElementFactory(new MediaReplacedElementFactory(
+                renderer.getSharedContext().getReplacedElementFactory(), request.getResourceResolver(), null));
+
+        renderer.layout();
+        renderer.createPDF(fileOutputStream);
+        renderer.finishPDF();
+
+        pdfInput = new FileInputStream(outputFile);
+    } catch (Exception e) {
+        LOG.error("Could not generate PDF content '{}'", e.getMessage());
+    }
+    return pdfInput;
+}
+
+
+

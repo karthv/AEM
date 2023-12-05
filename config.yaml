@@ -708,3 +708,10 @@ public class DomainUtil {
 }
 
 
+public static String getDomain(SlingHttpServletRequest request) {
+    String scheme = request.getScheme(); // Get the request scheme (e.g., HTTP, HTTPS)
+    String serverName = request.getServerName(); // Get the server name (e.g., example.com)
+    return scheme + "://" + serverName; // Combine scheme and server name to form the domain
+}
+
+

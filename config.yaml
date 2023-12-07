@@ -870,5 +870,103 @@ public class PdfGenerator {
     }
 }
 
+htm to file
+
+public static InputStream convertHtmlToFile(String htmlOfPage, SlingHttpServletRequest request,
+			ResourceResolver resolver, String[] pageattributes) throws UnsupportedEncodingException {
+		InputStream targetStream = null;
+		try {
+			Document document = addDocumentStyle(htmlOfPage, pageattributes);
+			Elements accoelements = document.select("div.code-accordion");
+			extractAccordionFromHTML(resolver, accoelements);
+		
+			
+			// update Image styling
+			addImageStyle(resolver, document);
+			// Anchor styling
+			addAnchorLinkStyle(document, request);
+			Elements elements = document.select("noscript");
+			elements.tagName(DIV);
+			document.outputSettings().syntax(Document.OutputSettings.Syntax.html);
+			targetStream = new ByteArrayInputStream(document.html().getBytes());
+		} finally {
+			IOUtils.closeQuietly(targetStream);
+		}
+		return targetStream;
+	}
+	
+	
+		public static Document addDocumentStyle(String htmlOfPage, String[] pageattributes) {
+		org.jsoup.nodes.Document document = Jsoup.parse(htmlOfPage, CharEncoding.UTF_8);
+		for (String tag : pageattributes) {
+			for (Element element : document.select(tag)) {
+				element.remove();
+			}
+		}
+		// Getting list of accordion in HTML
+		Elements mainElement = document.select(BODY_PAGE);
+		for (Element element : mainElement) {
+			element.attr(STYLE, FONT_STYLE_VALUE);
+		}
+		return document;
+	}
+	
+		private static void extractAccordionFromHTML(ResourceResolver resolver, Elements accoelements)
+			throws UnsupportedEncodingException {
+		int i = 1;
+		for (Element accolink : accoelements) {
+			// Getting list of accordion items in HTML
+			Elements accoelementsitems = accolink.select(ACOORDION_DIV_ITEM_CLASS);
+			for (Element accoelementsitem : accoelementsitems) {
+				Elements accoHeadingElements = accoelementsitem.select(ACCORDION_HEADING_CLASS);
+				String heading = accoHeadingElements.text();
+				Elements links = accoelementsitem.select(IMG_SRC);
+				for (Element link : links) {
+					String imageSrc = URLDecoder.decode(link.attr(SRC), UTF_8);
+					if (imageSrc != null && imageSrc.startsWith(FORWARD_SLASH)) {
+						String imagePath = getImagePath(resolver, imageSrc);
+						if (StringUtils.isNotEmpty(imagePath) && Objects.nonNull(resolver.getResource(imagePath))) {
+							link.attr(SRC, ACCORDION + i + FORWARD_SLASH + heading + FORWARD_SLASH + MEDIA
+									+ FORWARD_SLASH + StringUtils.substringAfterLast(imagePath, FORWARD_SLASH));
+							link.attr(STYLE, STYLE_VALUE);
+							link.removeAttr(ALT);
+						}
+					}
+				}
+			}
+			i = i + 1;
+		}
+	}
+	
+	
+		private static void addImageStyle(ResourceResolver resolver, org.jsoup.nodes.Document document)
+			throws UnsupportedEncodingException {
+		Elements links = document.select(IMG_ALT);
+		for (Element link : links) {
+			String imageSrc = URLDecoder.decode(link.attr(SRC), UTF_8);
+			if (imageSrc != null && imageSrc.startsWith(FORWARD_SLASH)) {
+				String imagePath = getImagePath(resolver, imageSrc);
+				if (StringUtils.isNotEmpty(imagePath) && Objects.nonNull(resolver.getResource(imagePath))) {
+					link.attr(SRC, MEDIA + FORWARD_SLASH + StringUtils.substringAfterLast(imagePath, FORWARD_SLASH));
+					link.attr(STYLE, STYLE_VALUE);
+				}
+			}
+		}
+	}
+	
+	
+		private static void addAnchorLinkStyle(org.jsoup.nodes.Document document,
+			SlingHttpServletRequest request) throws UnsupportedEncodingException {
+		Elements links = document.select(ANCHOR_HREF);
+		//issue is here
+		String domainName = getDomain(request);
+		for (Element link : links) {
+			String anchorHref = URLDecoder.decode(link.attr(HREF), UTF_8);
+			if (domainName != null && anchorHref.startsWith(CONTENT_NODE)) {
+				link.attr(HREF, domainName + anchorHref);
+			}
+		}
+
+
 
 

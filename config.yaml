@@ -784,3 +784,91 @@ public static InputStream outputPDF(String htmlString, SlingHttpServletRequest r
 
 
 
+########final one
+
+import com.lowagie.text.DocumentException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.xhtmlrenderer.pdf.ITextRenderer;
+import org.xhtmlrenderer.pdf.ITextFontResolver;
+import org.xhtmlrenderer.pdf.ITextOutputDevice;
+import org.xhtmlrenderer.pdf.ITextUserAgent;
+import org.xhtmlrenderer.simple.PDFRenderer;
+import org.xhtmlrenderer.util.XRRuntimeException;
+import org.jsoup.parser.Parser;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.*;
+import java.util.Arrays;
+
+public class PdfGenerator {
+
+    private static final String DEFAULT_DOCTYPE =
+            "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" " +
+            "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">";
+
+    public static InputStream generatePDF(String htmlString, HttpServletRequest request,
+                                          ResourceResolver resourceResolver, File outputFile, String[] pageAttributes) {
+        try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+            ITextRenderer renderer = createPdfRenderer(resourceResolver);
+            Document document = preprocessHtml(htmlString, pageAttributes);
+            org.w3c.dom.Document pdfDocument = convertToW3CDocument(document);
+            setRendererDocument(renderer, pdfDocument);
+
+            renderer.createPDF(fileOutputStream);
+            renderer.finishPDF();
+
+            return new FileInputStream(outputFile);
+        } catch (Exception e) {
+            LOG.error("Error generating PDF content", e);
+        }
+        return null;
+    }
+
+    private static ITextRenderer createPdfRenderer(ResourceResolver resourceResolver) {
+        ITextRenderer renderer = new ITextRenderer();
+        setupRenderer(renderer, resourceResolver);
+        return renderer;
+    }
+
+    private static void setupRenderer(ITextRenderer renderer, ResourceResolver resourceResolver) {
+        ITextOutputDevice outputDevice = renderer.getOutputDevice();
+        ITextFontResolver fontResolver = renderer.getFontResolver();
+        renderer.getSharedContext().setReplacedElementFactory(
+                new MediaReplacedElementFactory(renderer.getSharedContext().getReplacedElementFactory(), resourceResolver, null));
+    }
+
+    private static Document preprocessHtml(String htmlString, String[] pageAttributes) {
+        String htmlContent = DEFAULT_DOCTYPE + htmlString;
+        Document document = Jsoup.parse(htmlContent, "", Parser.xmlParser());
+        removeElements(document, "div.image-wide", "video.movie__loop");
+        removeCodeeImageElements(document);
+        // Apply other preprocessing logic if needed
+        return document;
+    }
+
+    private static void removeElements(Document document, String... selectors) {
+        Arrays.stream(selectors)
+                .flatMap(selector -> document.select(selector).stream())
+                .forEach(Element::remove);
+    }
+
+    private static void removeCodeeImageElements(Document document) {
+        Elements coeElements = document.select("div[class^='codee-']");
+        coeElements.removeAll(document.select("div.codee-image"));
+    }
+
+    private static org.w3c.dom.Document convertToW3CDocument(Document document) {
+        return new W3CDom().fromJsoup(document);
+    }
+
+    private static void setRendererDocument(ITextRenderer renderer, org.w3c.dom.Document pdfDocument) {
+        renderer.setDocument(pdfDocument, null);
+        renderer.layout();
+    }
+}
+
+
+

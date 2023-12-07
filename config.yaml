@@ -1007,3 +1007,8 @@ private static ITextRenderer createPdfRenderer(ResourceResolver resolver) {
     return renderer;
 }
 
+private static void setRendererDocument(ITextRenderer renderer, org.w3c.dom.Document pdfDocument) {
+    renderer.setDocument(pdfDocument, null);
+    renderer.layout();
+}
+

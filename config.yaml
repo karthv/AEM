@@ -967,6 +967,38 @@ public static InputStream convertHtmlToFile(String htmlOfPage, SlingHttpServletR
 			}
 		}
 
+html to pdf
+
+
+public static InputStream convertHtmlToPdf(String htmlOfPage, SlingHttpServletRequest request, ResourceResolver resolver, String[] pageattributes) throws UnsupportedEncodingException {
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        ITextRenderer renderer = createPdfRenderer(resolver);
+
+        // Load HTML file and apply styles
+        Document document = addDocumentStyle(htmlOfPage, pageattributes);
+        extractAccordionFromHTML(resolver, document.select("div.code-accordion"));
+        addImageStyle(resolver, document);
+        addAnchorLinkStyle(document, request);
+
+        // Convert the HTML document to a W3C DOM document
+        org.w3c.dom.Document pdfDocument = convertToW3CDocument(document);
+
+        // Set the document for rendering
+        setRendererDocument(renderer, pdfDocument);
+
+        // Create PDF and write it to the output stream
+        renderer.createPDF(outputStream);
+        renderer.finishPDF();
+
+        // Return the PDF content as an InputStream
+        return new ByteArrayInputStream(outputStream.toByteArray());
+    } catch (Exception e) {
+        LOG.error("Error generating PDF content", e);
+    }
+    return null;
+}
+
+// Other methods remain unchanged
 
 
 

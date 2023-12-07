@@ -1012,3 +1012,7 @@ private static void setRendererDocument(ITextRenderer renderer, org.w3c.dom.Docu
     renderer.layout();
 }
 
+private static org.w3c.dom.Document convertToW3CDocument(Document document) {
+    return new W3CDom().fromJsoup(document);
+}
+

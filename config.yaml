@@ -1052,5 +1052,8 @@ public static InputStream outputPDF(String htmlString, SlingHttpServletRequest r
     }
     return pdfInput;
 }
-
-
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.font.FontProvider;

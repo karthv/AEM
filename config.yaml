@@ -1016,3 +1016,41 @@ private static org.w3c.dom.Document convertToW3CDocument(Document document) {
     return new W3CDom().fromJsoup(document);
 }
 
+
+test it
+
+public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request, File outputFile, String[] pageAttributes) throws IOException {
+    InputStream pdfInput = null;
+    try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+        // Create a PDF document and a writer
+        PdfDocument pdf = new PdfDocument(new PdfWriter(fileOutputStream));
+        pdf.setTagged();
+
+        // Create a converter properties object
+        ConverterProperties properties = new ConverterProperties();
+
+        // Set the custom style, image, and font
+        properties.setBaseUri("http://localhost:4502");
+        properties.setCssApplierFactory(new CustomCssApplierFactory());
+        FontProvider fontProvider = new FontProvider();
+        fontProvider.addFont("fonts/MyCustomFont.ttf");
+        properties.setFontProvider(fontProvider);
+
+        // Remove any video elements from the htmlString
+        htmlString = htmlString.replaceAll("<video.*?</video>", "");
+
+        // Convert the htmlString to PDF
+        HtmlConverter.convertToPdf(htmlString, pdf, properties);
+
+        // Close the PDF document
+        pdf.close();
+
+        // Create an input stream from the output file
+        pdfInput = new FileInputStream(outputFile);
+    } catch (Exception e) {
+        LOG.error("Could not generate PDF content '{}'", e.getMessage());
+    }
+    return pdfInput;
+}
+
+

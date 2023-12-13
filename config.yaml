@@ -1057,3 +1057,28 @@ import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.font.FontProvider;
+
+
+
+
+
+public String getDomain(SlingHttpServletRequest request) {
+    Logger logger = LoggerFactory.getLogger(MyClass.class);
+    String domain = "";
+    Resource resource = request.getResource();
+    InheritanceValueMap iProperties = new HierarchyNodeInheritanceValueMap(resource);
+    domain = iProperties.getInherited("domain", "");
+    if (StringUtils.isEmpty(domain)) {
+      String resourcePath = resource.getPath();
+      StringBuilder externalURL = new StringBuilder();
+      try (ResourceResolver resolver = request.getResourceResolver()) {
+        externalURL.append(externalizer.publishLink(resolver, resourcePath));
+        externalURL.append(CONTENT_NODE);
+        domain = StringUtils.substringBefore(externalURL.toString(), CONTENT_NODE);
+      } catch (Exception e) {
+        logger.error("Failed to get domain from externalizer", e);
+      }
+    }
+    logger.debug("Domain is {}", domain);
+    return domain;
+  }

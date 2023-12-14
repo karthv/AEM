@@ -1082,3 +1082,67 @@ public String getDomain(SlingHttpServletRequest request) {
     logger.debug("Domain is {}", domain);
     return domain;
   }
+
+  public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request,
+			ResourceResolver resourceResolver, File outputFile, String[] pageattributes) throws IOException {
+		InputStream pdfInput = null;
+		try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+			// Load HTML file
+			Document document = addDocumentStyle(htmlString, pageattributes);
+			addAnchorLinkStyle(document, request);
+			String[] removeAttribute = { "div.image-wide","video.movie__loop" };
+
+			for (String attr : removeAttribute) {
+				for (Element removeElement : document.select(attr)) {
+					removeElement.remove();
+				}
+			}
+			Elements coeElements = document.select("div[class^='coder-']");
+			coeElements.removeAll(document.select("div.coder-image"));
+
+			// Add html2pdf CDN link to the head tag
+			Element head = document.head();
+			head.append("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js\"></script>");
+
+			// Add a hidden button to trigger the pdf generation
+			Element body = document.body();
+			body.append("<button id=\"pdf-button\" style=\"display:none\">Generate PDF</button>");
+
+			// Add a script to create the pdf document from the html string
+			body.append("<script>\n" +
+					"  // Get the button element\n" +
+					"  var button = document.getElementById(\"pdf-button\");\n" +
+					"  // Define some options for the pdf document\n" +
+					"  var options = {\n" +
+					"    filename: \"example.pdf\",\n" +
+					"    margin: 10,\n" +
+					"    image: {\n" +
+					"      type: \"jpeg\",\n" +
+					"      quality: 0.98\n" +
+					"    }\n" +
+					"  };\n" +
+					"  // Generate the pdf document from the html string\n" +
+					"  html2pdf(htmlString, options);\n" +
+					"</script>");
+
+			// Convert the document to a string
+			String htmlWithPdf = document.toString();
+
+			// Parse the string with Jsoup using StandardCharsets instead of CharEncoding
+			org.w3c.dom.Document pdfDocument = Jsoup.parse(htmlWithPdf, StandardCharsets.UTF_8.name());
+
+			// Write the document to the output stream
+			Transformer transformer = TransformerFactory.newInstance().newTransformer();
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			transformer.setOutputProperty(OutputKeys.METHOD, "html");
+			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			transformer.transform(new DOMSource(pdfDocument), new StreamResult(fileOutputStream));
+
+			// Read the output stream as an input stream
+			pdfInput = new FileInputStream(outputFile);
+		} catch (Exception e) {
+			LOG.error("Could not generate PDF content '{}' ", e.getMessage());
+		} 
+		return pdfInput;
+	}
+

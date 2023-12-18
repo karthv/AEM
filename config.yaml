@@ -1146,3 +1146,113 @@ public String getDomain(SlingHttpServletRequest request) {
 		return pdfInput;
 	}
 
+
+
+ import org.apache.commons.io.IOUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.resource.binary.Binary;
+import org.apache.sling.api.resource.binary.BinaryValue;
+import org.apache.sling.api.resource.binary.BinaryValueProvider;
+import org.w3c.dom.Element;
+import org.xhtmlrenderer.extend.FSImage;
+import org.xhtmlrenderer.extend.ReplacedElementFactory;
+import org.xhtmlrenderer.extend.UserAgentCallback;
+import org.xhtmlrenderer.layout.LayoutContext;
+import org.xhtmlrenderer.pdf.ITextFSImage;
+import org.xhtmlrenderer.pdf.ITextImageElement;
+import org.xhtmlrenderer.pdf.ITextOutputDevice;
+import com.itextpdf.text.BadElementException;
+import com.itextpdf.text.Image;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
+public class MediaReplacedElementFactory implements ReplacedElementFactory {
+
+    private final ReplacedElementFactory superFactory;
+    private ResourceResolver resourceResolver;
+    private ITextOutputDevice _outputDevice;
+
+    private static final Logger LOG = LoggerFactory.getLogger(MediaReplacedElementFactory.class);
+
+    public MediaReplacedElementFactory(ReplacedElementFactory superFactory, ResourceResolver resourceResolver,
+                                       ITextOutputDevice outputDevice) {
+        this.resourceResolver = resourceResolver;
+        this.superFactory = superFactory;
+        this._outputDevice = outputDevice;
+    }
+
+    @Override
+    public ReplacedElement createReplacedElement(LayoutContext layoutContext, BlockBox blockBox,
+                                                  UserAgentCallback userAgentCallback, int cssWidth, int cssHeight) {
+        Element element = blockBox.getElement();
+        if (element == null) {
+            return null;
+        }
+
+        String tagName = element.getTagName();
+
+        // Replace any img tag with the binary data of `image.png` into the PDF.
+        if ("img".equals(tagName)) {
+            try {
+                String imageSrc = URLDecoder.decode(element.getAttribute("src"), StandardCharsets.UTF_8.toString());
+                if (imageSrc != null && imageSrc.startsWith("/")) {
+                    Resource imageNode = this.resourceResolver.resolve(imageSrc);
+                    ValueMap vmap = imageNode.getValueMap();
+                    String imagePath = vmap.get("fileReference", String.class);
+                    Resource imageRes = this.resourceResolver.resolve(imagePath);
+
+                    if (imageRes != null && imageRes.getChild("renditions") != null) {
+                        Resource rendition = imageRes.getChild("renditions/original/jcr:content");
+                        Binary binary = rendition.adaptTo(Binary.class);
+                        BinaryValue binaryValue = BinaryValueProvider.from(binary);
+
+                        byte[] bytes = binaryValue.getBinaryData();
+                        if (bytes != null) {
+                            Image image = null;
+                            try {
+                                image = Image.getInstance(bytes);
+                                image.scaleAbsolute(image.getPlainWidth() * 7, image.getPlainHeight() * 7);
+
+                            } catch (BadElementException | IOException e) {
+                                LOG.error("Exception Occurred '{}'", e.getMessage());
+                            }
+
+                            final FSImage fsImage = new ITextFSImage(image);
+                            if (fsImage != null) {
+                                if ((cssWidth != -1) || (cssHeight != -1)) {
+                                    fsImage.scale(cssWidth, cssHeight);
+                                }
+                                return new ITextImageElement(fsImage);
+                            }
+                        }
+                    }
+                }
+            } catch (UnsupportedEncodingException | IOException e1) {
+                LOG.error("Exception Occurred '{}'", e1.getMessage());
+            }
+        }
+
+        return this.superFactory.createReplacedElement(layoutContext, blockBox, userAgentCallback, cssWidth, cssHeight);
+    }
+
+    @Override
+    public void reset() {
+        this.superFactory.reset();
+    }
+
+    @Override
+    public void remove(Element e) {
+        this.superFactory.remove(e);
+    }
+
+    @Override
+    public void setFormSubmissionListener(FormSubmissionListener listener) {
+        this.superFactory.setFormSubmissionListener(listener);
+    }
+}
+
+

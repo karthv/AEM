@@ -1,427 +1,33 @@
-Test
-
-
-package com.example.core.servlets;
-
-import org.apache.commons.io.IOUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
-import org.apache.sling.commons.mime.MimeTypeService;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-
-@Component(
-        service = Servlet.class,
-        property = {
-                "sling.servlet.methods=GET",
-                "sling.servlet.paths=/bin/downloadzip"
-        }
-)
-public class DownloadZipServlet extends SlingSafeMethodsServlet {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DownloadZipServlet.class);
-
-    @Reference
-    private MimeTypeService mimeTypeService;
-
-    @Override
-    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-        // Retrieve the file name from the request parameters
-        String fileName = request.getParameter("filename");
-
-        try {
-            validateFileName(fileName);
-
-            // Decode the file name if necessary
-            fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString());
-
-            // Logic to get the zip file from the specified location
-            String zipFilePath = "/content/dam/test/" + fileName;
-            InputStream inputStream = request.getResourceResolver().getResource(zipFilePath).adaptTo(InputStream.class);
-
-            if (inputStream == null) {
-                LOGGER.error("File not found: {}", zipFilePath);
-                throw new IOException("File not found: " + zipFilePath);
-            }
-
-            LOGGER.info("Downloading file: {}", fileName);
-
-            // Set response headers
-            setResponseHeaders(response, fileName);
-
-            // Copy content to the response output stream
-            OutputStream outputStream = response.getOutputStream();
-            IOUtils.copy(inputStream, outputStream);
-
-            // Close streams
-            inputStream.close();
-            outputStream.close();
-        } catch (Exception e) {
-            handleException(response, e);
-        }
-    }
-
-    private void validateFileName(String fileName) throws IllegalArgumentException {
-        if (fileName == null || fileName.isEmpty()) {
-            LOGGER.error("Invalid or missing filename parameter");
-            throw new IllegalArgumentException("Invalid or missing filename parameter");
-        }
-    }
-
-    private void setResponseHeaders(SlingHttpServletResponse response, String fileName) {
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-
-        // Determine MIME type using OSGi MimeTypeService
-        String mimeType = mimeTypeService.getMimeType(fileName);
-        response.setContentType(mimeType != null ? mimeType : "application/octet-stream");
-    }
-
-    private void handleException(SlingHttpServletResponse response, Exception e) throws IOException {
-        LOGGER.error("Error while processing request", e);
-        response.setStatus(SlingHttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        response.getWriter().write("Error: " + e.getMessage());
-    }
-}
-
-
-js
-<!-- Include a more recent version of jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-<!-- Create a button with an ID -->
-<button id="downloadButton">Download ZIP</button>
-
-<!-- Include JavaScript for triggering the servlet -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Constants
-        var SERVLET_ENDPOINT = '/bin/downloadzip'; // Adjust the servlet endpoint
-        var FILE_NAME = 'example.zip'; // Replace with your dynamic file name logic if needed
-
-        // Function to handle AJAX request
-        function downloadZIP() {
-            $.ajax({
-                type: 'GET',
-                url: SERVLET_ENDPOINT + '?filename=' + encodeURIComponent(FILE_NAME),
-                success: function(data) {
-                    // Log success (for debugging)
-                    console.log('Download successful:', data);
-                },
-                error: function(xhr, status, error) {
-                    // Log error (for debugging)
-                    console.error('Error downloading ZIP:', error);
-
-                    // Handle error (for production, you might want to show user-friendly messages)
-                    alert('Error downloading ZIP. Please try again.');
-                },
-                complete: function() {
-                    // Log completion (for debugging)
-                    console.log('Download process complete.');
-                }
-            });
-        }
-
-        // Attach click event handler to the button
-        var downloadButton = document.getElementById('downloadButton');
-        if (downloadButton) {
-            downloadButton.addEventListener('click', function() {
-                // Log button click (for debugging)
-                console.log('Download button clicked.');
-
-                // Trigger the servlet download
-                downloadZIP();
-            });
-        }
-    });
-</script>
-
-
-
-
-
-
-import org.apache.commons.io.IOUtils;
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.commons.mime.MimeTypeService;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jcr.Binary;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
-@Component(
-        service = Servlet.class,
-        property = {
-                "sling.servlet.methods=GET",
-                "sling.servlet.paths=/bin/downloadasset"
-        }
-)
-public class DownloadAssetServlet extends SlingSafeMethodsServlet {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DownloadAssetServlet.class);
-
-    @Reference
-    private MimeTypeService mimeTypeService;
-
-    @Override
-    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-        // Retrieve the asset name from the request parameters
-        String assetName = request.getParameter("assetName");
-
-        try {
-            validateAssetName(assetName);
-
-            // Combine the path and asset name to get the full path
-            String assetPath = "/content/dam/test/" + assetName;
-
-            // Logic to get the original rendition of the DAM asset
-            Resource assetResource = request.getResourceResolver().getResource(assetPath);
-
-            validateAssetResource(assetResource);
-
-            // Adapt the resource to a JCR Node
-            Node documentNode = assetResource.adaptTo(Node.class);
-
-            // Open a JCR session
-            try (Session session = documentNode.getSession()) {
-
-                // Get the binary content without streaming to the AEM service
-                Binary binary = documentNode.getProperty("jcr:data").getBinary();
-                InputStream inputStream = binary.getStream();
-
-                // Add the original rendition to the existing asset
-                addOriginalRendition(documentNode, inputStream, mimeTypeService.getMimeType(assetResource.getPath()));
-
-                // Set response headers
-                setResponseHeaders(response, assetResource);
-
-                // Copy content to the response output stream
-                try (OutputStream outputStream = response.getOutputStream()) {
-                    IOUtils.copy(inputStream, outputStream);
-                }
-
-                // Close the binary stream (no need to save the session, as we're not modifying the asset)
-                binary.dispose();
-            }
-        } catch (Exception e) {
-            handleException(response, e);
-        }
-    }
-
-    private void addOriginalRendition(Node documentNode, InputStream inputStream, String mimeType) throws RepositoryException {
-        try {
-            // Check if 'renditions' node exists, create if not
-            if (!documentNode.hasNode("renditions")) {
-                documentNode.addNode("renditions", "sling:Folder");
-                documentNode.getSession().save();
-            }
-
-            // Create 'original' rendition node
-            Node renditionsNode = documentNode.getNode("renditions");
-            Node originalRenditionNode = renditionsNode.addNode("original", "nt:file");
-
-            // Set properties for the original rendition
-            originalRenditionNode.setProperty("jcr:primaryType", "nt:file");
-            Node contentNode = originalRenditionNode.addNode("jcr:content", "nt:resource");
-            contentNode.setProperty("jcr:primaryType", "nt:resource");
-            contentNode.setProperty("jcr:data", documentNode.getSession().getValueFactory().createBinary(inputStream));
-            contentNode.setProperty("jcr:mimeType", mimeType);
-
-            // Save the session
-            documentNode.getSession().save();
-        } catch (RepositoryException e) {
-            LOGGER.error("Error adding original rendition", e);
-            throw e;
-        }
-    }
-
-    private void validateAssetName(String assetName) throws IllegalArgumentException {
-        if (assetName == null || assetName.isEmpty()) {
-            LOGGER.error("Invalid or missing asset name parameter");
-            throw new IllegalArgumentException("Invalid or missing asset name parameter");
-        }
-    }
-
-    private void validateAssetResource(Resource assetResource) throws IllegalArgumentException {
-        if (assetResource == null) {
-            LOGGER.error("Invalid or missing asset resource");
-            throw new IllegalArgumentException("Invalid or missing asset resource");
-        }
-    }
-
-    private void setResponseHeaders(SlingHttpServletResponse response, Resource assetResource) {
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + getFileNameFromPath(assetResource.getPath()) + "\"");
-
-        // Determine MIME type using OSGi MimeTypeService
-        String mimeType = mimeTypeService.getMimeType(assetResource.getPath());
-        response.setContentType(mimeType != null ? mimeType : "application/octet-stream");
-    }
-
-    private String getFileNameFromPath(String assetPath) {
-        // Extract file name from the asset path
-        return assetPath.substring(assetPath.lastIndexOf('/') + 1);
-    }
-
-    private void handleException(SlingHttpServletResponse response, Exception e) throws IOException {
-        LOGGER.error("Error while processing request", e);
-        response.setStatus(SlingHttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        response.getWriter().write("Error: " + e.getMessage());
-    }
-}
-
-
-import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import com.day.cq.dam.api.Asset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Session;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component(
-        service = Servlet.class,
-        property = {
-                "sling.servlet.methods=GET",
-                "sling.servlet.paths=/bin/downloadzip"
-        }
+    service = Servlet.class,
+    property = {
+        "sling.servlet.methods=GET",
+        "sling.servlet.paths=/bin/downloadzip"
+    }
 )
 public class DownloadZipServlet extends SlingSafeMethodsServlet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadZipServlet.class);
-
-    @Reference
-    private MimeTypeService mimeTypeService;
-
-    @Override
-    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-        String fileName = request.getParameter("filename");
-
-        try {
-            // Validate filename (add logic here)
-            validateFileName(fileName);
-
-            // Get a session for the specified service user
-            Session session = getSession("myServiceUser", "myServiceUserPassword"); // Replace with actual credentials
-
-            try (ResourceResolver resourceResolver = request.getResourceResolver(session)) {
-                Resource resource = resourceResolver.getResource("/content/dam/test/" + fileName);
-                try (InputStream inputStream = resource.adaptTo(InputStream.class)) {
-                    if (inputStream == null) {
-                        throw new ServletException("File not found");
-                    }
-
-                    String mimeType = mimeTypeService.getMimeType(fileName);
-                    response.setContentType(mimeType);
-                    response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-
-                    // Compression (if enabled)
-                    if (isCompressionSupported()) {
-                        response.setHeader("Content-Encoding", "gzip");
-                        try (OutputStream compressedOutputStream = new GZIPOutputStream(response.getOutputStream())) {
-                            IOUtils.copy(inputStream, compressedOutputStream);
-                        }
-                    } else {
-                        IOUtils.copy(inputStream, response.getOutputStream());
-                    }
-                }
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error during download:", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    // ... (Helper methods, logging, etc.)
-
-    private Session getSession(String userId, String password) {
-        // Replace with your AEMaaCS-specific way of obtaining a Session
-        // using the provided credentials
-    }
-
-    private boolean isCompressionSupported() {
-        // Replace with your logic to check for compression support
-    }
-}
-
-
-final///////////////
-
-
-import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jcr.Session;
-import javax.jcr.RepositoryException;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.zip.GZIPOutputStream;
-
-@Component(
-        service = Servlet.class,
-        property = {
-                "sling.servlet.methods=GET",
-                "sling.servlet.paths=/bin/downloadzip"
-        }
-)
-public class DownloadZipServlet extends SlingSafeMethodsServlet {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DownloadZipServlet.class);
-
-    @Reference
-    private MimeTypeService mimeTypeService;
 
     @Reference
     private ResourceResolverFactory resourceResolverFactory;
@@ -434,34 +40,24 @@ public class DownloadZipServlet extends SlingSafeMethodsServlet {
             // Validate filename (add logic here)
             validateFileName(fileName);
 
-            Map<String, Object> authInfo = new HashMap<>();
-            // Add service user credentials or other authentication details to authInfo
-
-            ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(authInfo);
-            try {
+            // Use a try-with-resources to ensure proper resource closure
+            try (ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(null)) {
                 Resource resource = resourceResolver.getResource("/content/dam/test/" + fileName);
-                try (InputStream inputStream = resource.adaptTo(InputStream.class)) {
-                    if (inputStream == null) {
-                        throw new ServletException("File not found");
-                    }
 
-                    String mimeType = mimeTypeService.getMimeType(fileName);
-                    response.setContentType(mimeType);
-                    response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+                if (resource != null && resource.isResourceType("dam:Asset")) {
+                    // Follow best practice: Generate download URL for direct download from CDN
+                    Asset asset = resource.adaptTo(Asset.class);
+                    String downloadUrl = asset.getOriginal().getURL();
 
-                    // Compression (if enabled)
-                    if (isCompressionSupported()) {
-                        response.setHeader("Content-Encoding", "gzip");
-                        try (OutputStream compressedOutputStream = new GZIPOutputStream(response.getOutputStream())) {
-                            IOUtils.copy(inputStream, compressedOutputStream);
-                        }
-                    } else {
-                        IOUtils.copy(inputStream, response.getOutputStream());
-                    }
-                }
-            } finally {
-                if (resourceResolver != null) {
-                    resourceResolver.close();
+                    // Generate a JavaScript code snippet to initiate download and extraction in the browser
+                    String jsCode = generateClientSideCode(downloadUrl);
+
+                    // Send the JavaScript code as the response
+                    response.getWriter().write(jsCode);
+                    response.setContentType("application/javascript");
+                } else {
+                    // Handle case where the requested resource is not an asset
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Asset not found");
                 }
             }
         } catch (Exception e) {
@@ -470,14 +66,25 @@ public class DownloadZipServlet extends SlingSafeMethodsServlet {
         }
     }
 
-    // ... (Helper methods, logging, etc.)
+    private String generateClientSideCode(String downloadUrl) {
+        return "var xhr = new XMLHttpRequest();" +
+               "xhr.responseType = 'blob';" +
+               "xhr.onload = function() {" +
+               "    var blob = xhr.response;" +
+               "    var zip = new JSZip();" +
+               "    zip.loadAsync(blob).then(function(zip) {" +
+               "        // Handle extraction logic here" +
+               "        zip.forEach(function (relativePath, file) {" +
+               "            console.log('Extracted file:', relativePath);" +
+               "        });" +
+               "    });" +
+               "};" +
+               "xhr.open('GET', '" + downloadUrl + "', true);" +
+               "xhr.send();";
+    }
 
-    private boolean isCompressionSupported() {
-        // Replace with your logic to check for compression support
+    // Implement the validateFileName method for security
+    private void validateFileName(String fileName) {
+        // Check for path traversal attempts and enforce allowed filename patterns
     }
 }
-
-
-
-
-

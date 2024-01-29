@@ -1,1 +1,150 @@
 Test
+
+
+package com.example.core.servlets;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.mime.MimeTypeService;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
+@Component(
+        service = Servlet.class,
+        property = {
+                "sling.servlet.methods=GET",
+                "sling.servlet.paths=/bin/downloadzip"
+        }
+)
+public class DownloadZipServlet extends SlingSafeMethodsServlet {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DownloadZipServlet.class);
+
+    @Reference
+    private MimeTypeService mimeTypeService;
+
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+        // Retrieve the file name from the request parameters
+        String fileName = request.getParameter("filename");
+
+        try {
+            validateFileName(fileName);
+
+            // Decode the file name if necessary
+            fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString());
+
+            // Logic to get the zip file from the specified location
+            String zipFilePath = "/content/dam/test/" + fileName;
+            InputStream inputStream = request.getResourceResolver().getResource(zipFilePath).adaptTo(InputStream.class);
+
+            if (inputStream == null) {
+                LOGGER.error("File not found: {}", zipFilePath);
+                throw new IOException("File not found: " + zipFilePath);
+            }
+
+            LOGGER.info("Downloading file: {}", fileName);
+
+            // Set response headers
+            setResponseHeaders(response, fileName);
+
+            // Copy content to the response output stream
+            OutputStream outputStream = response.getOutputStream();
+            IOUtils.copy(inputStream, outputStream);
+
+            // Close streams
+            inputStream.close();
+            outputStream.close();
+        } catch (Exception e) {
+            handleException(response, e);
+        }
+    }
+
+    private void validateFileName(String fileName) throws IllegalArgumentException {
+        if (fileName == null || fileName.isEmpty()) {
+            LOGGER.error("Invalid or missing filename parameter");
+            throw new IllegalArgumentException("Invalid or missing filename parameter");
+        }
+    }
+
+    private void setResponseHeaders(SlingHttpServletResponse response, String fileName) {
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        // Determine MIME type using OSGi MimeTypeService
+        String mimeType = mimeTypeService.getMimeType(fileName);
+        response.setContentType(mimeType != null ? mimeType : "application/octet-stream");
+    }
+
+    private void handleException(SlingHttpServletResponse response, Exception e) throws IOException {
+        LOGGER.error("Error while processing request", e);
+        response.setStatus(SlingHttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        response.getWriter().write("Error: " + e.getMessage());
+    }
+}
+
+
+js
+<!-- Include a more recent version of jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- Create a button with an ID -->
+<button id="downloadButton">Download ZIP</button>
+
+<!-- Include JavaScript for triggering the servlet -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Constants
+        var SERVLET_ENDPOINT = '/bin/downloadzip'; // Adjust the servlet endpoint
+        var FILE_NAME = 'example.zip'; // Replace with your dynamic file name logic if needed
+
+        // Function to handle AJAX request
+        function downloadZIP() {
+            $.ajax({
+                type: 'GET',
+                url: SERVLET_ENDPOINT + '?filename=' + encodeURIComponent(FILE_NAME),
+                success: function(data) {
+                    // Log success (for debugging)
+                    console.log('Download successful:', data);
+                },
+                error: function(xhr, status, error) {
+                    // Log error (for debugging)
+                    console.error('Error downloading ZIP:', error);
+
+                    // Handle error (for production, you might want to show user-friendly messages)
+                    alert('Error downloading ZIP. Please try again.');
+                },
+                complete: function() {
+                    // Log completion (for debugging)
+                    console.log('Download process complete.');
+                }
+            });
+        }
+
+        // Attach click event handler to the button
+        var downloadButton = document.getElementById('downloadButton');
+        if (downloadButton) {
+            downloadButton.addEventListener('click', function() {
+                // Log button click (for debugging)
+                console.log('Download button clicked.');
+
+                // Trigger the servlet download
+                downloadZIP();
+            });
+        }
+    });
+</script>
+
+
+

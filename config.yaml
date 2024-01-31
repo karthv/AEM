@@ -330,4 +330,129 @@ public class DownloadZipServlet extends SlingSafeMethodsServlet {
     }
 }
 
+background download
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import com.day.cq.dam.api.Asset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component(
+    service = SlingSafeMethodsServlet.class,
+    property = {
+        "sling.servlet.methods=GET",
+        "sling.servlet.paths=/bin/downloadzip"
+    }
+)
+public class DownloadZipServlet extends SlingSafeMethodsServlet {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DownloadZipServlet.class);
+
+    @Reference
+    private ResourceResolverFactory resourceResolverFactory;
+
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+        String fileName = request.getParameter("filename");
+
+        try {
+            // Validate filename (add logic here)
+            validateFileName(fileName);
+
+            Map<String, Object> authInfo = new HashMap<>();
+            // Add service user credentials or other authentication details to authInfo
+
+            try (ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(authInfo)) {
+                Resource resource = resourceResolver.getResource("/content/dam/test/" + fileName);
+
+                if (resource != null && resource.isResourceType("dam:Asset")) {
+                    // Follow best practice: Generate download URL for direct download from CDN
+                    Asset asset = resource.adaptTo(Asset.class);
+                    String cdnUrl = asset.getPath(); // Assumes AEM Cloud Service provides CDN URLs directly
+
+                    // Set the response content type to application/octet-stream
+                    response.setContentType("application/octet-stream");
+
+                    // Set the response header for content disposition with inline type
+                    response.setHeader("Content-Disposition", "inline; filename=\"" + fileName + "\"");
+
+                    // Include JSZip library in the response
+                    response.getWriter().write(getJsZipScriptTag());
+
+                    // Include JavaScript code for client-side download, storage, and extraction
+                    response.getWriter().write(getClientSideExtractionScript(cdnUrl));
+
+                } else {
+                    // Handle case where the requested resource is not an asset
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Asset not found");
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error during download:", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Implement the validateFileName method for security
+    private void validateFileName(String fileName) {
+        // Check for path traversal attempts and enforce allowed filename patterns
+    }
+
+    private String getJsZipScriptTag() {
+        // Script tag to include JSZip library from CDN with cache headers
+        return "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js\"" +
+               " integrity=\"sha512-your-integrity-hash\"" +
+               " crossorigin=\"anonymous\"" +
+               " integrity=\"sha512-your-integrity-hash\"" +
+               " crossorigin=\"anonymous\"" +
+               " referrerpolicy=\"no-referrer\"" +
+               " defer></script>\n";
+    }
+
+    private String getClientSideExtractionScript(String downloadUrl) {
+        // JavaScript code to download, store, and extract the ZIP file in the background
+        return "<script>\n" +
+               "function downloadAndStoreZip(downloadUrl) {\n" +
+               "    fetch(downloadUrl)\n" +
+               "        .then(response => response.blob())\n" +
+               "        .then(blob => {\n" +
+               "            var reader = new FileReader();\n" +
+               "            reader.onload = function() {\n" +
+               "                var binaryData = reader.result;\n" +
+               "                sessionStorage.setItem('zipData', binaryData);\n" +
+               "                console.log('ZIP file stored in sessionStorage');\n" +
+               "                extractZipFromSessionStorage();\n" +
+               "            };\n" +
+               "            reader.readAsDataURL(blob);\n" +
+               "        });\n" +
+               "}\n" +
+               "function extractZipFromSessionStorage() {\n" +
+               "    var zipData = sessionStorage.getItem('zipData');\n" +
+               "    var zip = new JSZip();\n" +
+               "    zip.loadAsync(zipData).then(function(zip) {\n" +
+               "        // Handle extraction logic here\n" +
+               "        zip.forEach(function (relativePath, file) {\n" +
+               "            console.log('Extracted file:', relativePath);\n" +
+               "        });\n" +
+               "    });\n" +
+               "}\n" +
+               "downloadAndStoreZip('" + downloadUrl + "');\n" +
+               "</script>\n";
+    }
+}
+
+
 

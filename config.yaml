@@ -455,4 +455,55 @@ public class DownloadZipServlet extends SlingSafeMethodsServlet {
 }
 
 
+thread solution;
+
+public class DownloadZipServlet extends HttpServlet {
+
+    private static final Logger logger = LoggerFactory.getLogger(DownloadZipServlet.class);
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String fileName = request.getParameter("fileName");
+
+        if (!isValidFileName(fileName)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        File zipFile = new File(zipsResourcesPath + fileName);
+
+        if (!zipFile.exists()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        Thread thread = new Thread(() -> {
+            try {
+                try (FileInputStream fileInputStream = new FileInputStream(zipFile)) {
+                    byte[] buffer = new byte[(int) zipFile.length()];
+                    fileInputStream.read(buffer);
+
+                    response.setContentType("application/zip");
+                    response.addHeader("Content-Disposition", "attachment; filename=" + fileName);
+                    response.setContentLength(buffer.length);
+
+                    try (OutputStream responseOutputStream = response.getOutputStream()) {
+                        responseOutputStream.write(buffer);
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                logger.error("Error while locating ZIP file:", e);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            } catch (IOException e) {
+                logger.error("General I/O exception while downloading ZIP:", e);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
+        });
+        thread.start();
+    }
+
+    // ... other methods, including isValidFileName() ...
+}
+
+
 

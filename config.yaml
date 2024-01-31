@@ -538,16 +538,17 @@ public class DownloadZipServlet extends SlingSafeMethodsServlet {
 
     @Override
     protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-        String assetPath = request.getParameter("assetPath");
+        String assetName = request.getParameter("assetName"); // Get the dynamic name from the parameter
 
         try {
-            // Validate asset path and access permissions (add your logic here)
+            // Validate asset name (add your logic here)
 
             ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(null);
-            Asset asset = resourceResolver.getResource(assetPath).adaptTo(Asset.class);
+            Resource assetResource = resourceResolver.getResource("/content/dam/testwork/" + assetName); // Build the complete path
+            Asset asset = assetResource.adaptTo(Asset.class);
 
-            if (asset.getOriginal().getSize() <= 0) {
-                throw new IOException("Empty asset");
+            if (asset == null || asset.getOriginal().getSize() <= 0) {
+                throw new IOException("Asset not found or empty");
             }
 
             response.setContentType("application/zip"); // Assuming a ZIP download
@@ -572,6 +573,7 @@ public class DownloadZipServlet extends SlingSafeMethodsServlet {
         }
     }
 }
+
 
 
 

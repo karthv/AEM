@@ -906,6 +906,16 @@ downloadButton.addEventListener("click", async () => {
 });
 
 
+js code:
+
+<script src="jszip.min.js"></script>
+Use code with caution. Learn more
+Use a Content Delivery Network (CDN):
+Link to JSZip from a CDN directly in your HTML file:
+HTML
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+
+
 
 
 

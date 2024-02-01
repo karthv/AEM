@@ -918,5 +918,12 @@ HTML
 
 
 
+"use strict";
 
+granite.utils.makeGraniteRequest({
+    url: "/etc/clientlibs/jszip/js/jszip.min.js",
+    type: "GET",
+    dataType: "script",
+    async: true
+});
 

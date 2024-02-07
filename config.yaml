@@ -1112,3 +1112,42 @@ async function downloadAndStoreZip() {
 }
 
 
+
+modifiedStyle:
+
+
+
+
+    request.onerror = function (event) {
+        console.log("request.onerror errcode=" + event.target.error.name);
+    };
+
+    request.onupgradeneeded = function (event) {
+        console.log("request.onupgradeneeded, creating a new version of the database");
+        db = event.target.result;
+
+        // Create an objectStore for employees. use unique employeeId as key path
+        var objectStore = db.createObjectStore("employees", { keyPath: "employeeId" });
+
+        // Create index to search employee by name.
+        objectStore.createIndex("name", "name", { unique: false });
+
+        // Create an index to search by email.
+        objectStore.createIndex("email", "email", { unique: true });
+
+        // Store values in objectStore.
+        for (var i in employeeData) {
+            objectStore.add(employeeData[i]);
+        }
+    };
+
+    request.onsuccess = function (event) {
+        // Handle errors.
+        console.log("request.onsuccess, database opened, now can add / remove / look for data in IndexedDB.");
+
+        // The result is the database itself
+        db = event.target.result;
+    };
+}
+
+

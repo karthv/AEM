@@ -927,3 +927,73 @@ granite.utils.makeGraniteRequest({
     async: true
 });
 
+onclick button call
+***********************
+
+// Function to store a ZIP file in IndexedDB
+async function storeZipFile(zipBlob) {
+  try {
+    const db = await new Promise((resolve, reject) => {
+      indexedDB.open("myZipStorage", 1)
+        .onupgradeneeded((event) => {
+          event.target.result.createObjectStore("zipFileData", { keyPath: "filename" });
+        })
+        .onsuccess(resolve)
+        .onerror(reject);
+    });
+    const transaction = db.transaction("zipFileData", "readwrite");
+    const store = transaction.objectStore("zipFileData");
+
+    // Check for existing ZIP file to avoid duplicates (optional)
+    const request = store.get("myZipFile.zip");
+    const exists = await new Promise((resolve) => {
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => resolve(false);
+    });
+    if (!exists) {
+      // Add the ZIP file to the object store if it doesn't exist
+      await store.add(zipBlob, "myZipFile.zip");
+      console.log("ZIP file stored successfully");
+    } else {
+      console.log("ZIP file already exists in IndexedDB");
+    }
+  } catch (error) {
+    console.error("Error storing ZIP file:", error);
+  }
+}
+
+// Function to download and store ZIP file
+var downloadAndStoreZip = async function() {
+  try {
+    const response = await fetch("path/to/servlet/that/provides/zip"); // Replace with your servlet's path
+    const zipBlob = await response.blob();
+
+    // Store ZIP file in IndexedDB (if not already present)
+    await storeZipFile(zipBlob);
+
+    // Extract ZIP file contents
+    const zip = new JSZip();
+    await zip.loadAsync(zipBlob);
+
+    // Access extracted files (example)
+    console.log(zip.files); // Log all extracted files and metadata
+    const fileContent = await zip.file("path/to/file.txt").async("text"); // Get content of a specific file
+    console.log(fileContent);
+
+    // Do something with the extracted files or content...
+  } catch (error) {
+    console.error("Error fetching, storing, or extracting ZIP file:", error);
+    // Provide user-friendly error feedback here
+  }
+};
+
+// Button and onclick attribute
+const downloadButton = document.getElementById("download-and-store-zip");
+
+// Use dot notation
+downloadButton.onclick = downloadAndStoreZip;
+
+// Or use setAttribute method
+// downloadButton.setAttribute("onclick", "downloadAndStoreZip()");
+
+

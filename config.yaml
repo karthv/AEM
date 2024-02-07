@@ -1151,3 +1151,94 @@ modifiedStyle:
 }
 
 
+Test it:
+
+// IndexedDB Wrapper Class
+class IndexedDBManager {
+  constructor(databaseName, version) {
+    this.databaseName = databaseName;
+    this.version = version;
+  }
+
+  async openDatabase() {
+    try {
+      const request = indexedDB.open(this.databaseName, this.version);
+      return await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (error) => reject(`Error opening database: ${error}`);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains("zipFileData")) {
+            db.createObjectStore("zipFileData", { keyPath: "filename" });
+            console.log("Object store 'zipFileData' created successfully");
+          }
+        };
+      });
+    } catch (error) {
+      console.error("Failed to open database:", error);
+      throw error;
+    }
+  }
+
+  async storeZipFile(zipBlob, filename) {
+    try {
+      const db = await this.openDatabase();
+      const transaction = db.transaction("zipFileData", "readwrite");
+      const store = transaction.objectStore("zipFileData");
+      const exists = await this.checkIfZipExists(store, filename);
+      if (!exists) {
+        await store.add(zipBlob, filename);
+        console.log(`ZIP file '${filename}' stored successfully`);
+      } else {
+        console.log(`ZIP file '${filename}' already exists in IndexedDB`);
+      }
+    } catch (error) {
+      console.error("Error storing ZIP file:", error);
+      throw error;
+    }
+  }
+
+  async checkIfZipExists(store, filename) {
+    return new Promise((resolve, reject) => {
+      const request = store.get(filename);
+      request.onsuccess = () => resolve(!!request.result);
+      request.onerror = () => resolve(false);
+    });
+  }
+}
+
+// Function to fetch ZIP file containing DAM assets
+async function fetchAndStoreDAMZip() {
+  try {
+    const response = await fetch("path/to/servlet/that/provides/dam/zip");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch DAM ZIP file: ${response.statusText}`);
+    }
+    const zipBlob = await response.blob();
+    const dbManager = new IndexedDBManager("myDAMStorage", 1);
+    await dbManager.storeZipFile(zipBlob, "myDAMFile.zip");
+    await extractAndDisplayContent(zipBlob);
+  } catch (error) {
+    console.error("Error fetching or storing DAM ZIP file:", error);
+    // Provide user-friendly error feedback here
+  }
+}
+
+// Function to extract ZIP file contents using JSZip and display the extracted content
+async function extractAndDisplayContent(zipBlob) {
+  try {
+    const zip = new JSZip();
+    const zipObject = await zip.loadAsync(zipBlob);
+    // Access extracted files and display the content as needed
+    console.log("Extracted files:", zipObject.files);
+  } catch (error) {
+    console.error("Error extracting or displaying ZIP file content:", error);
+    // Provide user-friendly error feedback here
+  }
+}
+
+// Trigger the process to fetch and store DAM ZIP file
+fetchAndStoreDAMZip();
+
+
+

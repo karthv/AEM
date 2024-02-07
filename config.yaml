@@ -1035,5 +1035,80 @@ function openIndexedDB(databaseName, version) {
   });
 }
 
+version 2 of above code
+***********************
+
+
+// Function to store a ZIP file in IndexedDB
+async function storeZipFile(zipBlob) {
+  try {
+    // Open the IndexedDB database
+    const db = await openIndexedDB("myZipStorage", 1);
+
+    // Create or access the object store
+    const transaction = db.transaction("zipFileData", "readwrite");
+    const store = transaction.objectStore("zipFileData");
+
+    // Check if the ZIP file already exists in IndexedDB
+    const exists = await checkIfZipExists(store, "myZipFile.zip");
+    if (!exists) {
+      // Add the ZIP file to the object store
+      await store.add(zipBlob, "myZipFile.zip");
+      console.log("ZIP file stored successfully");
+    } else {
+      console.log("ZIP file already exists in IndexedDB");
+    }
+  } catch (error) {
+    console.error("Error storing ZIP file:", error);
+  }
+}
+
+// Function to open IndexedDB
+function openIndexedDB(databaseName, version) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(databaseName, version);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      db.createObjectStore("zipFileData", { keyPath: "filename" });
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (error) => reject(error);
+  });
+}
+
+// Function to check if a ZIP file already exists in IndexedDB
+function checkIfZipExists(store, filename) {
+  return new Promise((resolve) => {
+    const request = store.get(filename);
+    request.onsuccess = () => resolve(!!request.result);
+    request.onerror = () => resolve(false);
+  });
+}
+
+// Function to download and store ZIP file
+async function downloadAndStoreZip() {
+  try {
+    // Fetch the ZIP file from the server
+    const response = await fetch("path/to/servlet/that/provides/zip");
+    if (!response.ok) {
+      throw new Error("Failed to fetch ZIP file: " + response.statusText);
+    }
+    const zipBlob = await response.blob();
+
+    // Store ZIP file in IndexedDB
+    await storeZipFile(zipBlob);
+
+    // Extract ZIP file contents (if needed)
+    // Example: Extracting files using JSZip
+    const zip = new JSZip();
+    const zipObject = await zip.loadAsync(zipBlob);
+    // Do something with the extracted files or content...
+  } catch (error) {
+    console.error("Error fetching, storing, or extracting ZIP file:", error);
+    // Provide user-friendly error feedback here
+  }
+}
 
 

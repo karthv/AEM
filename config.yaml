@@ -1287,23 +1287,48 @@ class IndexedDBManager {
     }
   }
 
+  # async storeZipFile(zipBlob, filename) {
+  #   try {
+  #     const db = await this.openDatabase();
+  #     const transaction = db.transaction("zipFileData", "readwrite");
+  #     const store = transaction.objectStore("zipFileData");
+  #     const exists = await this.checkIfZipExists(store, filename);
+  #     if (!exists) {
+  #       await store.add(zipBlob, filename);
+  #       console.log(`ZIP file '${filename}' stored successfully`);
+  #     } else {
+  #       console.log(`ZIP file '${filename}' already exists in IndexedDB`);
+  #     }
+  #   } catch (error) {
+  #     console.error("Error storing ZIP file:", error);
+  #     throw error;
+  #   }
+  # }
+
   async storeZipFile(zipBlob, filename) {
     try {
-      const db = await this.openDatabase();
-      const transaction = db.transaction("zipFileData", "readwrite");
-      const store = transaction.objectStore("zipFileData");
-      const exists = await this.checkIfZipExists(store, filename);
-      if (!exists) {
-        await store.add(zipBlob, filename);
-        console.log(`ZIP file '${filename}' stored successfully`);
-      } else {
-        console.log(`ZIP file '${filename}' already exists in IndexedDB`);
-      }
+        const db = await this.openDatabase();
+        const transaction = db.transaction("zipFileData", "readwrite");
+        const store = transaction.objectStore("zipFileData");
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const blob = new Blob([reader.result], { type: "application/zip" });
+            const exists = await this.checkIfZipExists(store, filename);
+            if (!exists) {
+                await store.add(blob, filename);
+                console.log(`ZIP file '${filename}' stored successfully`);
+            } else {
+                console.log(`ZIP file '${filename}' already exists in IndexedDB`);
+            }
+        };
+        reader.readAsArrayBuffer(zipBlob);
     } catch (error) {
-      console.error("Error storing ZIP file:", error);
-      throw error;
+        console.error("Error storing ZIP file:", error);
+        throw error;
     }
-  }
+}
+
 
   async checkIfZipExists(store, filename) {
     return new Promise((resolve, reject) => {

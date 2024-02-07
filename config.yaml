@@ -1161,24 +1161,34 @@ class IndexedDBManager {
   }
 
   async openDatabase() {
-    try {
-      const request = indexedDB.open(this.databaseName, this.version);
-      return await new Promise((resolve, reject) => {
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = (error) => reject(`Error opening database: ${error}`);
-        request.onupgradeneeded = (event) => {
-          const db = event.target.result;
-          if (!db.objectStoreNames.contains("zipFileData")) {
-            db.createObjectStore("zipFileData", { keyPath: "filename" });
-            console.log("Object store 'zipFileData' created successfully");
-          }
-        };
-      });
-    } catch (error) {
-      console.error("Failed to open database:", error);
-      throw error;
-    }
+  try {
+    const request = indexedDB.open(this.databaseName, this.version);
+
+    return await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = (event) => {
+        console.error("Error opening database:", event.target.error);
+        reject(`Error opening database: ${event.target.error}`);
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains("zipFileData")) {
+          const store = db.createObjectStore("zipFileData", { keyPath: "filename" });
+          console.log("Object store 'zipFileData' created successfully");
+        }
+      };
+
+      request.onblocked = (event) => {
+        console.warn("Database open request blocked by other connection");
+      };
+    });
+  } catch (error) {
+    console.error("Failed to open database:", error);
+    throw error;
   }
+}
+
 
   async storeZipFile(zipBlob, filename) {
     try {

@@ -1648,6 +1648,73 @@ async storeZipFile(zipBlob, filename) {
 }
 
 
+try alter:
+***********
+***********
+**********
+**********
+***********
+
+// Function to download SCORM zip package from server
+function downloadSCORMPackage(url) {
+  return new Promise((resolve, reject) => {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        resolve(xhr.response);
+      } else {
+        reject(new Error('Failed to download SCORM package'));
+      }
+    };
+
+    xhr.onerror = function() {
+      reject(new Error('Failed to download SCORM package'));
+    };
+
+    xhr.send();
+  });
+}
+
+// Function to extract SCORM package in the browser
+function extractSCORMPackage(blob) {
+  return new Promise((resolve, reject) => {
+    JSZip.loadAsync(blob).then(function(zip) {
+      // Assuming SCORM package contains multiple files
+      // You can access individual files using zip.file() and process them as needed
+
+      // Example: Extracting all files to a directory
+      zip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir) {
+          zipEntry.async('blob').then((content) => {
+            // Process individual file content here
+            console.log('Extracted file:', relativePath);
+          });
+        }
+      });
+
+      resolve();
+    }).catch(function(error) {
+      reject(error);
+    });
+  });
+}
+
+// Usage example
+var scormUrl = 'http://example.com/scorm_package.zip';
+
+downloadSCORMPackage(scormUrl)
+  .then(blob => extractSCORMPackage(blob))
+  .then(() => {
+    console.log('SCORM package downloaded and extracted successfully.');
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+
+
 
 
 

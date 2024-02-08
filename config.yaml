@@ -1574,6 +1574,80 @@ async storeZipFile(zipBlob, filename) {
 }
 
 
+storeZipFile
+*********************************
+
+async storeZipFile(zipBlob, filename) {
+  try {
+    console.log(`Starting to store ZIP file '${filename}'...`);
+
+    // Open database connection
+    const db = await this.openDatabase();
+
+    // Start transaction for storing files and directories
+    const transaction = db.transaction("zipFileData", "readwrite");
+    const store = transaction.objectStore("zipFileData");
+
+    // Read ZIP file contents
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        // Parse ZIP archive
+        const zip = new JSZip();
+        const zipObject = await zip.loadAsync(reader.result);
+
+        // Create a map to store directory structure
+        const directoryMap = {};
+
+        // Process each file or directory in the archive
+        for (const filePath in zipObject.files) {
+          if (zipObject.files.hasOwnProperty(filePath)) {
+            const file = zipObject.files[filePath];
+
+            if (file.dir) { // Handle directories
+              // Create directory entry in the map
+              const directoryPath = filePath.substring(0, filePath.lastIndexOf('/'));
+              directoryMap[directoryPath] = true;
+            } else { // Handle files
+              const fileData = await file.async("blob");
+
+              // Create parent directories if needed
+              const directoryPath = filePath.substring(0, filePath.lastIndexOf('/'));
+              if (directoryPath && !directoryMap[directoryPath]) {
+                console.log(`Creating directory '${directoryPath}'...`);
+                await store.put({ type: 'directory', name: directoryPath }, directoryPath);
+                directoryMap[directoryPath] = true;
+              }
+
+              // Store the file in IndexedDB
+              await store.put(fileData, filePath);
+              console.log(`File '${filePath}' stored successfully`);
+            }
+          }
+        }
+
+        console.log(`ZIP file '${filename}' contents stored successfully`);
+      } catch (error) {
+        console.error("Error extracting or storing ZIP file contents:", error);
+        transaction.abort(); // Rollback transaction on error
+        throw error;
+      }
+    };
+    reader.onerror = (error) => {
+      console.error("Error reading ZIP file:", error);
+      transaction.abort(); // Rollback transaction on error
+      throw error;
+    };
+    reader.readAsArrayBuffer(zipBlob);
+
+    await transaction.complete; // Ensure transaction completion
+  } catch (error) {
+    console.error("Error storing ZIP file:", error);
+    throw error;
+  }
+}
+
+
 
 
 

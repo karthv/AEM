@@ -1540,5 +1540,40 @@ const filename = "example.zip";
 dbManager.storeZipFile(zipBlob, filename);
 
 
+change code
+*************
+*************
+
+async storeZipFile(zipBlob, filename) {
+    try {
+        const db = await this.openDatabase();
+        const transaction = db.transaction("zipFileData", "readwrite");
+        const store = transaction.objectStore("zipFileData");
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const arrayBuffer = reader.result;
+            const exists = await this.checkIfZipExists(store, filename);
+            if (!exists) {
+                const blob = new Blob([arrayBuffer], { type: "application/zip" });
+                await store.add(blob, filename);
+                console.log(`ZIP file '${filename}' stored successfully`);
+            } else {
+                console.log(`ZIP file '${filename}' already exists in IndexedDB`);
+            }
+        };
+        reader.onerror = (error) => {
+            console.error("Error reading ZIP file:", error);
+            throw error;
+        };
+        reader.readAsArrayBuffer(zipBlob);
+    } catch (error) {
+        console.error("Error storing ZIP file:", error);
+        throw error;
+    }
+}
+
+
+
 
 

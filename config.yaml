@@ -1419,3 +1419,126 @@ fetchAndStoreDAMZip("path/to/zip1.zip", "zip1.zip");
 
 
 
+
+
+
+*********************************************************
+*********************************************************
+
+class IndexedDBManager {
+  constructor(databaseName, version) {
+    this.databaseName = databaseName;
+    this.version = version;
+  }
+
+  async openDatabase() {
+    try {
+      const request = indexedDB.open(this.databaseName, this.version);
+
+      return await new Promise((resolve, reject) => {
+        request.onerror = (event) => {
+          console.error("Error opening database:", event.target.error);
+          reject(`Error opening database: ${event.target.error}`);
+        };
+
+        request.onsuccess = () => {
+          const db = request.result;
+
+          // Ensure that the database object is valid
+          if (!db) {
+            console.error("Error opening database: Invalid database object");
+            reject("Error opening database: Invalid database object");
+            return;
+          }
+
+          console.log("Database opened successfully:", db);
+
+          // Check if the version matches
+          if (db.version !== this.version) {
+            console.warn(`Database version (${db.version}) does not match the expected version (${this.version})`);
+          }
+
+          // Check if the object store exists
+          if (!db.objectStoreNames.contains("zipFileData")) {
+            console.warn("Object store 'zipFileData' does not exist");
+            
+            // Attempt to create the object store if it doesn't exist
+            const versionRequest = db.setVersion(this.version);
+            versionRequest.onsuccess = () => {
+              const transaction = versionRequest.result.transaction(["zipFileData"], "readwrite");
+              transaction.objectStore("zipFileData");
+              console.log("Object store 'zipFileData' created successfully");
+              resolve(db);
+            };
+            versionRequest.onerror = (event) => {
+              console.error("Error creating object store:", event.target.error);
+              reject(`Error creating object store: ${event.target.error}`);
+            };
+            return;
+          }
+
+          // Resolve with the database object
+          resolve(db);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains("zipFileData")) {
+            const store = db.createObjectStore("zipFileData", { keyPath: "filename" });
+            console.log("Object store 'zipFileData' created successfully");
+          }
+        };
+
+        request.onblocked = (event) => {
+          console.warn("Database open request blocked by other connection");
+        };
+      });
+    } catch (error) {
+      console.error("Failed to open database:", error);
+      throw error;
+    }
+  }
+
+  async storeZipFile(zipBlob, filename) {
+    try {
+      const db = await this.openDatabase();
+      const transaction = db.transaction("zipFileData", "readwrite");
+      const store = transaction.objectStore("zipFileData");
+
+      const exists = await this.checkIfZipExists(store, filename);
+      if (exists) {
+        console.log(`ZIP file '${filename}' already exists in IndexedDB`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const blob = new Blob([reader.result], { type: "application/zip" });
+        await store.add(blob, filename);
+        console.log(`ZIP file '${filename}' stored successfully`);
+      };
+      reader.readAsArrayBuffer(zipBlob);
+    } catch (error) {
+      console.error("Error storing ZIP file:", error);
+      throw error;
+    }
+  }
+
+  async checkIfZipExists(store, filename) {
+    return new Promise((resolve, reject) => {
+      const request = store.get(filename);
+      request.onsuccess = () => resolve(!!request.result);
+      request.onerror = () => resolve(false);
+    });
+  }
+}
+
+// Usage:
+const dbManager = new IndexedDBManager("myDatabase", 1);
+const zipBlob = new Blob(["zip file content"], { type: "application/zip" });
+const filename = "example.zip";
+dbManager.storeZipFile(zipBlob, filename);
+
+
+
+

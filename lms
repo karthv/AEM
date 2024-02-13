@@ -115,3 +115,16 @@ function handleButtonClick() {
       console.error('Error:', error);
     });
 }
+
+function getLaunchFileUrl(zip, launchFile) {
+  return new Promise((resolve, reject) => {
+    // Get the blob object of the launch file
+    zip.file(launchFile).async('blob').then(function(launchFileBlob) {
+      // Create a URL for the launch file
+      var launchFileUrl = URL.createObjectURL(launchFileBlob);
+      resolve(launchFileUrl);
+    }).catch(function(error) {
+      reject(error);
+    });
+  });
+}

@@ -200,4 +200,51 @@ function extractSCORMPackage(blob) {
   });
 }
 
+zip directory handle
+**********************
+
+function extractSCORMPackage(blob) {
+  return new Promise((resolve, reject) => {
+    JSZip.loadAsync(blob)
+      .then((zip) => {
+        let promises = [];
+
+        // Handle both files and directories
+        zip.forEach((relativePath, zipEntry) => {
+          if (!zipEntry.dir) {
+            // For files, asynchronously extract the content
+            let promise = zipEntry.async('blob')
+              .then((content) => {
+                // Process individual file content here
+                console.log('Extracted file:', relativePath);
+                return { relativePath, content }; // Return the extracted content
+              })
+              .catch((error) => {
+                // Handle errors during individual file processing
+                console.error('Error processing file:', relativePath, error);
+                throw error; // Propagate the error for proper handling
+              });
+
+            promises.push(promise);
+          }
+        });
+
+        // Wait for all promises to resolve
+        Promise.all(promises)
+          .then((extractedFiles) => {
+            // Resolve with the zip object and extracted files
+            resolve({ zip: zip, extractedFiles: extractedFiles });
+          })
+          .catch((error) => {
+            reject(error); // Reject with the error caught during file processing
+          });
+      })
+      .catch((error) => {
+        console.error('Error during SCORM package extraction:', error);
+        reject(error); // Reject with the error caught during loading the ZIP
+      });
+  });
+}
+
+
 

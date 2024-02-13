@@ -165,3 +165,39 @@ function extractSCORMPackage(blob) {
   });
 }
 
+
+
+
+
+function extractSCORMPackage(blob) {
+  return new Promise((resolve, reject) => {
+    JSZip.loadAsync(blob)
+      .then((zip) => {
+        // Handle potential errors within forEach loop
+        zip.forEach((relativePath, zipEntry) => {
+          if (!zipEntry.dir) {
+            zipEntry.async('blob')
+              .then((content) => {
+                // Process individual file content here
+                console.log('Extracted file:', relativePath);
+              })
+              .catch((error) => {
+                // Handle errors during individual file processing
+                console.error('Error processing file:', relativePath, error);
+                reject(error);
+              });
+          }
+        });
+
+        // Resolve with the zip object only after all files have been processed
+        return Promise.all(zip.files.map((file) => file.async('blob')));
+      })
+      .then(() => zip) // Resolve with zip object after successful file processing
+      .catch((error) => {
+        console.error('Error during SCORM package extraction:', error);
+        reject(error);
+      });
+  });
+}
+
+

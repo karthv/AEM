@@ -128,3 +128,40 @@ function getLaunchFileUrl(zip, launchFile) {
     });
   });
 }
+
+
+function extractSCORMPackage(blob) {
+  return new Promise((resolve, reject) => {
+    JSZip.loadAsync(blob).then(function(zip) {
+      let promises = [];
+
+      // Array to store all extracted files
+      let extractedFiles = [];
+
+      // Extracting all files to a directory
+      zip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir) {
+          // Pushing the promise of each extracted file to the promises array
+          let promise = zipEntry.async('blob').then((content) => {
+            // Process individual file content here
+            console.log('Extracted file:', relativePath);
+            // Store the extracted file
+            extractedFiles.push({ path: relativePath, content: content });
+          });
+          promises.push(promise);
+        }
+      });
+
+      // Waiting for all promises to resolve
+      Promise.all(promises).then(() => {
+        // Resolve the Promise with the zip object and extracted files
+        resolve({ zip: zip, files: extractedFiles });
+      }).catch((error) => {
+        reject(error);
+      });
+    }).catch(function(error) {
+      reject(error);
+    });
+  });
+}
+

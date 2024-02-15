@@ -247,4 +247,153 @@ function extractSCORMPackage(blob) {
 }
 
 
+need to check this code,
+
+// Function to download SCORM zip package from server
+function downloadSCORMPackage(url) {
+  return new Promise((resolve, reject) => {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        resolve(xhr.response);
+      } else {
+        reject(new Error('Failed to download SCORM package'));
+      }
+    };
+
+    xhr.onerror = function() {
+      reject(new Error('Failed to download SCORM package'));
+    };
+
+    xhr.send();
+  });
+}
+
+// Function to extract SCORM package in the browser
+function extractSCORMPackage(blob) {
+  return new Promise((resolve, reject) => {
+    JSZip.loadAsync(blob).then(function(zip) {
+      // Assuming SCORM package contains multiple files
+      // You can access individual files using zip.file() and process them as needed
+
+      // Open the IndexedDB database
+      var request = indexedDB.open('scormDB', 1);
+      request.onerror = function(event) {
+        reject(new Error('Failed to open IndexedDB database'));
+      };
+      request.onsuccess = function(event) {
+        var db = event.target.result;
+        var transaction = db.transaction(['scormStore'], 'readwrite');
+        var objectStore = transaction.objectStore('scormStore');
+
+        zip.forEach((relativePath, zipEntry) => {
+          if (!zipEntry.dir) {
+            zipEntry.async('blob').then((content) => {
+              // Store individual file content in IndexedDB
+              objectStore.put(content, 'scorm/' + relativePath);
+            });
+          }
+        });
+
+        resolve(zip); // Return the zip object
+      };
+    }).catch(function(error) {
+      reject(error);
+    });
+  });
+}
+
+// Function to find the launch file of the SCORM package from IndexedDB
+function findLaunchFile() {
+  return new Promise((resolve, reject) => {
+    var request = indexedDB.open('scormDB', 1);
+    request.onerror = function(event) {
+      reject(new Error('Failed to open IndexedDB database'));
+    };
+    request.onsuccess = function(event) {
+      var db = event.target.result;
+      var transaction = db.transaction(['scormStore'], 'readonly');
+      var objectStore = transaction.objectStore('scormStore');
+
+      // Assume manifest file is always present in the "scorm" folder
+      var getRequest = objectStore.get('scorm/imsmanifest.xml');
+      getRequest.onerror = function(event) {
+        reject(new Error('Failed to retrieve manifest file from IndexedDB'));
+      };
+      getRequest.onsuccess = function(event) {
+        var manifestFileContent = getRequest.result;
+        if (manifestFileContent) {
+          var parser = new DOMParser();
+          var xmlDoc = parser.parseFromString(manifestFileContent, 'text/xml');
+          // Find the resource element with the scormtype attribute set to 'sco'
+          var resource = xmlDoc.querySelector('resource[adlcp\\:scormtype="sco"]');
+          if (resource) {
+            // Get the value of the href attribute of the resource element
+            var launchFile = resource.getAttribute('href');
+            if (launchFile) {
+              // Retrieve the launch file content from IndexedDB
+              var launchFileRequest = objectStore.get('scorm/' + launchFile);
+              launchFileRequest.onerror = function(event) {
+                reject(new Error('Failed to retrieve launch file from IndexedDB'));
+              };
+              launchFileRequest.onsuccess = function(event) {
+                var launchFileContent = launchFileRequest.result;
+                if (launchFileContent) {
+                  resolve(launchFileContent);
+                } else {
+                  reject(new Error('Launch file not found in IndexedDB'));
+                }
+              };
+            } else {
+              reject(new Error('No launch file found in the manifest file'));
+            }
+          } else {
+            reject(new Error('No resource element with scormtype="sco" found in the manifest file'));
+          }
+        } else {
+          reject(new Error('No manifest file found in IndexedDB'));
+        }
+      };
+    };
+  });
+}
+
+// Function to load the launch file content in an iframe or a new window
+function loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue) {
+  // Create an iframe element
+  var iframe = document.createElement('iframe');
+  // Set the srcdoc attribute of the iframe with the launch file content and the query parameters
+  iframe.srcdoc = launchFileContent + searchString + '&' + customApiKey + '=' + customApiValue;
+  // Append the iframe to the document body
+  document.body.appendChild(iframe);
+}
+
+// Function to handle the button click event
+function handleButtonClick() {
+  var scormUrl = 'http://example.com/scorm_package.zip';
+
+  // Define the search string and the custom API key/value pair
+  var searchString = '?embedded=true';
+  var customApiKey = 'SomeCustomKey';
+  var customApiValue = 'SomeCustomValue';
+
+  downloadSCORMPackage(scormUrl)
+    .then(blob => extractSCORMPackage(blob))
+    .then(() => findLaunchFile())
+    .then(launchFileContent => {
+      // Load the launch file content in an iframe or a new window
+      loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue);
+    })
+    .then(() => {
+      console.log('SCORM package downloaded, extracted, and loaded successfully.');
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
+
+
 

@@ -372,10 +372,9 @@ function loadLaunchFile(launchFileContent, searchString, customApiKey, customApi
 }
 
 // Function to handle the button click event
+// Function to handle the button click event
 function handleButtonClick() {
   var scormUrl = 'http://example.com/scorm_package.zip';
-
-  // Define the search string and the custom API key/value pair
   var searchString = '?embedded=true';
   var customApiKey = 'SomeCustomKey';
   var customApiValue = 'SomeCustomValue';
@@ -384,8 +383,9 @@ function handleButtonClick() {
     .then(blob => extractSCORMPackage(blob))
     .then(() => findLaunchFile())
     .then(launchFileContent => {
-      // Load the launch file content in an iframe or a new window
       loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue);
+      // Initialize the SCORM API here
+      Utils.launchSCO();
     })
     .then(() => {
       console.log('SCORM package downloaded, extracted, and loaded successfully.');
@@ -394,6 +394,7 @@ function handleButtonClick() {
       console.error('Error:', error);
     });
 }
+
 
 
 

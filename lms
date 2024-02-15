@@ -396,5 +396,53 @@ function handleButtonClick() {
 }
 
 
+load the file on demand,
+
+// Function to handle the button click event
+function handleButtonClick() {
+  var scormUrl = 'http://example.com/scorm_package.zip';
+
+  // Define the search string and the custom API key/value pair
+  var searchString = '?embedded=true';
+  var customApiKey = 'SomeCustomKey';
+  var customApiValue = 'SomeCustomValue';
+
+  downloadSCORMPackage(scormUrl)
+    .then(blob => extractSCORMPackage(blob))
+    .then(zip => {
+      // Load the launch file
+      var launchFile = 'imsmanifest.xml'; // Assuming this is the launch file
+      return loadFile(zip, launchFile);
+    })
+    .then(launchFileContent => {
+      // Load the launch file content in an iframe or a new window
+      loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue);
+    })
+    .then(() => {
+      console.log('SCORM package downloaded, extracted, and loaded successfully.');
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
+
+// Function to load a file from the SCORM package
+function loadFile(zip, relativePath) {
+  return new Promise((resolve, reject) => {
+    var zipEntry = zip.file(relativePath);
+    if (zipEntry) {
+      zipEntry.async('blob').then(content => {
+        resolve(content);
+      }).catch(error => {
+        reject(error);
+      });
+    } else {
+      reject(new Error('File not found in SCORM package: ' + relativePath));
+    }
+  });
+}
+
+
+
 
 

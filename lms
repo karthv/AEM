@@ -443,6 +443,35 @@ function loadFile(zip, relativePath) {
 }
 
 
+TEST THIS METHOD
+
+function handleButtonClick(scormUrl) {
+  // Define the search string and the custom API key/value pair
+  var searchString = '?embedded=true';
+  var customApiKey = 'SomeCustomKey';
+  var customApiValue = 'SomeCustomValue';
+
+  downloadSCORMPackage(scormUrl)
+    .then(blob => extractSCORMPackage(blob))
+    .then(zip => findLaunchFile(zip))
+    .then(launchFile => {
+      // Get the blob object of the launch file
+      return zip.file(launchFile).async('blob')
+        .then(launchFileBlob => {
+          // Create a URL for the launch file
+          var launchFileUrl = URL.createObjectURL(launchFileBlob);
+          // Load the launch file URL in an iframe or a new window
+          loadLaunchFile(launchFileUrl, searchString, customApiKey, customApiValue);
+          Utils.launchSCO(launchFileUrl);
+        });
+    })
+    .then(() => {
+      console.log('SCORM package downloaded, extracted, and loaded successfully.');
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
 
 
 

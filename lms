@@ -474,4 +474,142 @@ function handleButtonClick(scormUrl) {
 }
 
 
+-----------------------------------------------------------------------------------------------------------------------------
 
+
+
+// Function to download SCORM zip package from server
+function downloadSCORMPackage(url) {
+  return new Promise((resolve, reject) => {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        resolve(xhr.response);
+      } else {
+        reject(new Error('Failed to download SCORM package'));
+      }
+    };
+
+    xhr.onerror = function() {
+      reject(new Error('Failed to download SCORM package'));
+    };
+
+    xhr.send();
+  });
+}
+
+function extractSCORMPackage(blob) {
+  return new Promise((resolve, reject) => {
+    JSZip.loadAsync(blob)
+      .then((zip) => {
+        let promises = [];
+
+        // Handle both files and directories
+        zip.forEach((relativePath, zipEntry) => {
+          if (!zipEntry.dir) {
+            // For files, asynchronously extract the content
+            let promise = zipEntry.async('blob')
+              .then((content) => {
+                // Process individual file content here
+                console.log('Extracted file:', relativePath);
+                return { relativePath, content }; // Return the extracted content
+              })
+              .catch((error) => {
+                // Handle errors during individual file processing
+                console.error('Error processing file:', relativePath, error);
+                throw error; // Propagate the error for proper handling
+              });
+
+            promises.push(promise);
+          }
+        });
+
+        // Wait for all promises to resolve
+        Promise.all(promises)
+          .then((extractedFiles) => {
+            // Resolve with the zip object and extracted files
+            resolve({ zip: zip, extractedFiles: extractedFiles });
+          })
+          .catch((error) => {
+            reject(error); // Reject with the error caught during file processing
+          });
+      })
+      .catch((error) => {
+        console.error('Error during SCORM package extraction:', error);
+        reject(error); // Reject with the error caught during loading the ZIP
+      });
+  });
+}
+
+// Function to find the launch file of the SCORM package from the zip object
+function findLaunchFile(zip) {
+  return new Promise((resolve, reject) => {
+    // Get the manifest file from the zip object
+    var manifestFile = zip.zip.file('imsmanifest.xml') 
+    if (manifestFile) {
+      // Parse the manifest file as XML
+      manifestFile.async('text').then(function(xml) {
+        var parser = new DOMParser();
+        var xmlDoc = parser.parseFromString(xml, 'text/xml');
+        // Find the resource element with the scormtype attribute set to 'sco'
+        //var resource = xmlDoc.querySelector('resources').firstElementChild.attributes.getNamedItem('adlcp:scormtype');
+          var resource = xmlDoc.querySelector('resources').firstChild;
+        if (resource) {
+          // Get the value of the href attribute of the resource element
+          var launchFile = resource.getAttribute('href');
+          if (launchFile) {
+            // Return the launch file name
+            resolve(launchFile);
+          } else {
+            reject(new Error('No launch file found in the manifest file'));
+          }
+        } else {
+          reject(new Error('No resource element with scormtype="sco" found in the manifest file'));
+        }
+      }).catch(function(error) {
+        reject(error);
+      });
+    } else {
+      reject(new Error('No manifest file found in the zip object'));
+    }
+  });
+}
+
+
+
+// Function to load the launch file content in an iframe or a new window
+function loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue) {
+  // Create an iframe element
+  var iframe = document.createElement('iframe');
+  // Set the srcdoc attribute of the iframe with the launch file content and the query parameters
+  iframe.srcdoc = launchFileContent + searchString + '&' + customApiKey + '=' + customApiValue;
+  // Append the iframe to the document body
+  document.body.appendChild(iframe);
+}
+
+
+function handleButtonClick(scormUrl) {
+  var searchString = '?embedded=true';
+  var customApiKey = 'SomeCustomKey';
+  var customApiValue = 'SomeCustomValue';
+
+  downloadSCORMPackage(scormUrl)
+    .then(blob => extractSCORMPackage(blob))
+    .then(zip => {
+      return findLaunchFile(zip);
+    })
+    .then(launchFileContent => {
+      // Load the launch file content in an iframe or a new window
+      loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue);
+ 	  Utils.launchSCO(launchFileContent);
+    })
+    .then(() => {
+      console.log('SCORM package downloaded, extracted, and loaded successfully.');
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}

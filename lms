@@ -613,3 +613,34 @@ function handleButtonClick(scormUrl) {
       console.error('Error:', error);
     });
 }
+
+------------------------------
+-------------------------------
+
+function handleButtonClick(scormUrl) {
+  var searchString = '?embedded=true';
+  var customApiKey = 'SomeCustomKey';
+  var customApiValue = 'SomeCustomValue';
+
+  downloadSCORMPackage(scormUrl)
+    .then(blob => extractSCORMPackage(blob))
+    .then(zip => {
+      return findLaunchFile(zip);
+    })
+    .then(launchFileContent => {
+      // Load the launch file content in an iframe or a new window
+      loadLaunchFile(launchFileContent, searchString, customApiKey, customApiValue);
+
+      // Connect and pass the launch file content to Simple API for SCORM 1.2
+      SimpleAPI.LMSInitialize(); // Initialize SCORM session
+      SimpleAPI.LMSSetValue("cmi.launch_data", launchFileContent); // Set launch data in the SCORM data model
+
+      // Continue with any other interactions or tracking as needed
+
+      console.log('SCORM package downloaded, extracted, and loaded successfully.');
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
+

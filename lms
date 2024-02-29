@@ -644,3 +644,14 @@ function handleButtonClick(scormUrl) {
     });
 }
 
+
+notes:
+
+Browser Security and User Consent:
+
+Browsers enforce strict security measures to safeguard user data and privacy. Allowing web applications to access the file system without user consent would violate these security policies.
+The File System Access API prioritizes user consent, ensuring that users have control over which files are accessed and where they are saved.
+Browser Storage Mechanisms:
+
+IndexedDB: A client-side database system within the browser that allows web applications to store structured data. While IndexedDB provides a means to store files locally, it's primarily designed for structured data storage and may not be suitable for saving large binary files like zip archives.
+File API: Provides limited access to the user's file system, primarily for reading files selected by the user through file input fields. It does not allow direct file manipulation or saving files without user interaction.

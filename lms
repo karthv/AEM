@@ -655,3 +655,13 @@ Browser Storage Mechanisms:
 
 IndexedDB: A client-side database system within the browser that allows web applications to store structured data. While IndexedDB provides a means to store files locally, it's primarily designed for structured data storage and may not be suitable for saving large binary files like zip archives.
 File API: Provides limited access to the user's file system, primarily for reading files selected by the user through file input fields. It does not allow direct file manipulation or saving files without user interaction.
+
+
+Browser Security and User Consent:
+
+Browsers implement stringent security protocols to protect user data and privacy. Allowing web apps to access the file system without user consent would breach these security measures.
+The File System Access API emphasizes obtaining user consent, empowering users to determine which files are accessed and where they are stored.
+Browser Storage Mechanisms:
+
+IndexedDB: A client-side database system in browsers facilitating structured data storage. While it offers local storage capabilities, it's primarily intended for structured data and may not be well-suited for storing large binary files like zip archives.
+File API: Provides limited file system access, mainly for reading files selected by the user via file input fields. It doesn't support direct file manipulation or saving files without user interaction.

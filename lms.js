@@ -3203,3 +3203,52 @@ function viewModel(){
         }
         return html;
     }
+
+
+
+
+
+
+
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
+import org.apache.sling.api.request.builder.Builders;
+import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
+import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
+
+import javax.servlet.ServletException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+
+protected String getHtmlContent(String path, ResourceResolver resolver) {
+    String html = "";
+    try {
+        // Build and execute the request using Request Builder
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        MockSlingHttpServletResponse mockResponse = new MockSlingHttpServletResponse() {
+            @Override
+            public PrintWriter getWriter() {
+                return new PrintWriter(out);
+            }
+        };
+
+        Builders.newRequestBuilder(resolver)
+                .withRequestMethod(HttpConstants.METHOD_GET)
+                .withResourcePath(path)
+                .withAdditionToResponse(mockResponse)
+                .withApplyModifications(request -> WCMMode.DISABLED.toRequest(request))
+                .build()
+                .execute();
+
+        mockResponse.getWriter().flush();
+        html = out.toString(StandardCharsets.UTF_8.name());
+    } catch (IOException | ServletException e) {
+        LOG.error("Could not generate HTML content for path '{}'", path, e);
+    }
+
+    return html;
+}
+

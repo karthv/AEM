@@ -3252,3 +3252,60 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
     return html;
 }
 
+
+
+
+
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.ServletResolver;
+import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
+import org.apache.sling.api.request.RequestDispatcherOptions;
+import org.apache.sling.api.request.RequestDispatcher;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+
+public class HtmlContentGeneratorServlet extends SlingAllMethodsServlet {
+
+    protected String getHtmlContent(String path, SlingHttpServletRequest request, SlingHttpServletResponse response) {
+        String html = "";
+        ResourceResolver resolver = request.getResourceResolver();
+
+        try {
+            // Set up options for the dispatcher (if needed)
+            RequestDispatcherOptions options = new RequestDispatcherOptions();
+            options.setForceResourceType(null); // Optional: set to your specific resource type if needed
+
+            // Create a wrapped response to capture the output
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            SlingHttpServletResponseWrapper responseWrapper = new SlingHttpServletResponseWrapper(response) {
+                @Override
+                public PrintWriter getWriter() {
+                    return new PrintWriter(out, true);
+                }
+            };
+
+            // Dispatch the request internally to render the HTML
+            RequestDispatcher dispatcher = resolver.getRequestDispatcher(resolver.getResource(path), options);
+            if (dispatcher != null) {
+                dispatcher.include(request, responseWrapper);
+            }
+
+            responseWrapper.getWriter().flush();
+            html = out.toString(StandardCharsets.UTF_8.name());
+        } catch (IOException | ServletException e) {
+            LOG.error("Could not generate HTML content for path '{}': {}", path, e.getMessage(), e);
+        }
+
+        return html;
+    }
+}
+
+

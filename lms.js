@@ -3183,3 +3183,23 @@ function viewModel(){
 	return showCurrentModelState("info");
 }
 
+
+
+
+  protected String getHtmlContent(String path, ResourceResolver resolver) {
+        String html = "";
+        
+        HttpServletRequest request = requestResponseFactory.createRequest(HttpConstants.METHOD_GET, path);
+        WCMMode.DISABLED.toRequest(request);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        HttpServletResponse response = requestResponseFactory.createResponse(out);
+
+        try {
+            requestProcessor.processRequest(request, response, resolver);
+            response.getWriter().flush();
+            html = out.toString(UTF_8);
+        } catch (Exception e) {
+        	LOG.error("Could not generate HTML content for path '{}'", path, e);
+        }
+        return html;
+    }

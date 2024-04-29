@@ -3260,10 +3260,11 @@ import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
-import org.apache.sling.api.request.RequestDispatcherOptions;
-import org.apache.sling.api.request.RequestDispatcher;
+import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.request.RequestDispatcher;
+import org.apache.sling.api.request.RequestDispatcherOptions;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -3279,27 +3280,33 @@ public class HtmlContentGeneratorServlet extends SlingAllMethodsServlet {
         ResourceResolver resolver = request.getResourceResolver();
 
         try {
-            // Set up options for the dispatcher (if needed)
-            RequestDispatcherOptions options = new RequestDispatcherOptions();
-            options.setForceResourceType(null); // Optional: set to your specific resource type if needed
+            Resource resource = resolver.getResource(path);
+            if (resource != null) {
+                // Creating the RequestDispatcher from the resource
+                RequestDispatcherOptions options = new RequestDispatcherOptions();
+                RequestDispatcher dispatcher = request.getRequestDispatcher(resource, options);
 
-            // Create a wrapped response to capture the output
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            SlingHttpServletResponseWrapper responseWrapper = new SlingHttpServletResponseWrapper(response) {
-                @Override
-                public PrintWriter getWriter() {
-                    return new PrintWriter(out, true);
+                // Create a wrapped response to capture the output
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                SlingHttpServletResponseWrapper responseWrapper = new SlingHttpServletResponseWrapper(response) {
+                    @Override
+                    public PrintWriter getWriter() {
+                        return new PrintWriter(out, true);
+                    }
+                };
+
+                // Dispatch the request internally to render the HTML
+                if (dispatcher != null) {
+                    dispatcher.include(request, responseWrapper);
+                } else {
+                    LOG.error("No RequestDispatcher found for path: {}", path);
                 }
-            };
 
-            // Dispatch the request internally to render the HTML
-            RequestDispatcher dispatcher = resolver.getRequestDispatcher(resolver.getResource(path), options);
-            if (dispatcher != null) {
-                dispatcher.include(request, responseWrapper);
+                responseWrapper.getWriter().flush();
+                html = out.toString(StandardCharsets.UTF_8.name());
+            } else {
+                LOG.error("Resource not found at path: {}", path);
             }
-
-            responseWrapper.getWriter().flush();
-            html = out.toString(StandardCharsets.UTF_8.name());
         } catch (IOException | ServletException e) {
             LOG.error("Could not generate HTML content for path '{}': {}", path, e.getMessage(), e);
         }
@@ -3307,5 +3314,6 @@ public class HtmlContentGeneratorServlet extends SlingAllMethodsServlet {
         return html;
     }
 }
+
 
 

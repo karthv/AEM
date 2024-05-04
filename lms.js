@@ -3359,3 +3359,37 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
 
 
 
+
+ private String fetchHTMLContent(SlingHttpServletRequest request, String path) {
+        try {
+            // Create a wrapper around the existing SlingHttpServletRequest
+            SlingHttpServletRequestWrapper wrappedRequest = new SlingHttpServletRequestWrapper(request) {};
+
+            // Simulate a request to the specified path
+            wrappedRequest.setAttribute(ServletResolverConstants.REQUEST_URI, path);
+            wrappedRequest.setAttribute(ServletResolverConstants.SLING_SERVLET_PATH, path);
+            wrappedRequest.setAttribute(ServletResolverConstants.PATH_INFO, path);
+
+            // Create a ByteArrayOutputStream to capture the response
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            // Create a SlingHttpServletResponse using the ByteArrayOutputStream
+            SlingHttpServletResponse servletResponse = new SlingHttpServletResponse(wrappedRequest) {
+                @Override
+                public java.io.PrintWriter getWriter() throws IOException {
+                    return new java.io.PrintWriter(outputStream);
+                }
+            };
+
+            // Execute the servlet or script to generate the HTML content
+            request.getRequestDispatcher(path).forward(wrappedRequest, servletResponse);
+
+            // Extract HTML content from the ByteArrayOutputStream
+            return outputStream.toString("UTF-8");
+        } catch (Exception e) {
+            // Handle any exceptions
+            e.printStackTrace();
+            return null; // or log the exception
+        }
+    }
+

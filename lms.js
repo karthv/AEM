@@ -3315,5 +3315,47 @@ public class HtmlContentGeneratorServlet extends SlingAllMethodsServlet {
     }
 }
 
+workTest
+
+
+
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+protected String getHtmlContent(String path, ResourceResolver resolver) {
+  String html = "";
+  final Logger logger = LoggerFactory.getLogger(getClass()); // Use proper logging
+
+  try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+    // Validate path is not null or empty
+    if (path == null || path.isEmpty()) {
+      throw new IllegalArgumentException("Path cannot be null or empty");
+    }
+
+    // Create a custom Sling request using the resource resolver
+    SlingHttpServletRequest request = Builders.newRequestBuilder(resolver.getResource(path))
+                                          .build();
+
+    // Set WCMMode to DISABLED for the request
+    WCMMode.DISABLED.toRequest(request);
+
+    // Create a custom SlingHttpServletResponse to capture the HTML content
+    SlingHttpServletResponse response = new SlingHttpServletResponseWrapper(null);
+    PrintWriter writer = new PrintWriter(out, true);
+    response.setCharacterEncoding(StandardCharsets.UTF_8); // Set encoding explicitly
+
+    // Process the request to generate the HTML content
+    requestProcessor.processRequest(request, response, resolver);
+
+    // Get the captured output as a string
+    html = new String(out.toByteArray(), StandardCharsets.UTF_8);
+  } catch (Exception e) {
+    logger.error("Could not generate HTML content for path '{}'", path, e);
+    // Consider returning a specific error code or message for informative handling
+  }
+  return html;
+}
+
 
 

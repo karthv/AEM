@@ -3393,3 +3393,26 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
         }
     }
 
+
+
+ @Reference
+    private SlingRequestProcessor slingRequestProcessor;
+
+    @Reference
+    private RequestResponseFactory requestResponseFactory;
+
+    protected String getHtmlContent(String path, ResourceResolver resolver) {
+        String html = "";
+        try {
+            // Use SlingInternalRequest to simulate the request
+            html = new SlingInternalRequest(resolver, slingRequestProcessor, path)
+                    .withRequestMethod(HttpConstants.METHOD_GET)
+                    .execute()
+                    .checkStatus(200)
+                    .getResponseAsString();
+
+        } catch (Exception e) {
+            LOG.error("Could not generate HTML content for path '{}'", path, e);
+        }
+        return html;
+    }

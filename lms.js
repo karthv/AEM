@@ -3473,3 +3473,42 @@ public class HtmlContentFetcher {
         return html;
     }
 }
+
+
+
+
+
+
+
+
+
+
+public String fetchHtmlContent(String path, ResourceResolver resolver, SlingRequestProcessor slingRequestProcessor) {
+        String html = "";
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            
+            // Create mock HTTP request
+            HttpServletRequest request = new HttpServletRequest() {
+                @Override public String getMethod() { return HttpConstants.METHOD_GET; }
+                @Override public String getPathInfo() { return path; }
+                // Implement other required methods or return default values
+            };
+
+            // Create mock HTTP response
+            HttpServletResponse response = new HttpServletResponse() {
+                @Override public ByteArrayOutputStream getOutputStream() { return new ByteArrayOutputStream(); }
+                // Implement other required methods or return default values
+            };
+
+            // Process the request
+            slingRequestProcessor.processRequest(request, response, resolver);
+            response.getWriter().flush();
+            html = out.toString("UTF-8");
+
+        } catch (IOException e) {
+            LOG.error("Error fetching HTML content for path '{}': {}", path, e.getMessage(), e);
+        } catch (Exception e) {
+            LOG.error("Unexpected error occurred while fetching HTML content for path '{}': {}", path, e.getMessage(), e);
+        }
+        return html;
+    }

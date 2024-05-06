@@ -3416,3 +3416,60 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
         }
         return html;
     }
+
+
+
+
+
+
+
+
+
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.engine.SlingRequestProcessor;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+public class HtmlContentFetcher {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HtmlContentFetcher.class);
+
+    private final SlingRequestProcessor slingRequestProcessor;
+    private final HttpServletRequestFactory requestFactory;
+    private final HttpServletResponseFactory responseFactory;
+
+    public HtmlContentFetcher(SlingRequestProcessor slingRequestProcessor,
+                              HttpServletRequestFactory requestFactory,
+                              HttpServletResponseFactory responseFactory) {
+        this.slingRequestProcessor = slingRequestProcessor;
+        this.requestFactory = requestFactory;
+        this.responseFactory = responseFactory;
+    }
+
+    public String getHtmlContent(String path, ResourceResolver resolver) {
+        String html = "";
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            
+            // Create a mock HTTP request and response
+            HttpServletRequest request = requestFactory.createRequest(HttpConstants.METHOD_GET, path);
+            HttpServletResponse response = responseFactory.createResponse(out);
+
+            // Process the request
+            slingRequestProcessor.processRequest(request, response, resolver);
+            response.getWriter().flush();
+            html = out.toString("UTF-8");
+
+        } catch (IOException e) {
+            LOG.error("Error fetching HTML content for path '{}': {}", path, e.getMessage(), e);
+        } catch (Exception e) {
+            LOG.error("Unexpected error occurred while fetching HTML content for path '{}': {}", path, e.getMessage(), e);
+        }
+        return html;
+    }
+}

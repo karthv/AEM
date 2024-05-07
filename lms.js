@@ -3512,3 +3512,33 @@ public String fetchHtmlContent(String path, ResourceResolver resolver, SlingRequ
         }
         return html;
     }
+
+
+
+
+
+protected String getHtmlContent(String path, ResourceResolver resolver) {
+        String html = "";
+        try {
+            // Access the DAM resource directly
+            Resource resource = resolver.getResource(path + "/jcr:content/renditions/original/jcr:content");
+            if (resource == null) {
+                LOG.error("Resource not found for path '{}'", path);
+                return "";
+            }
+
+            // Read the HTML file content
+            InputStream inputStream = resource.adaptTo(InputStream.class);
+            if (inputStream == null) {
+                LOG.error("InputStream is null for path '{}'", path);
+                return "";
+            }
+
+            // Convert the InputStream to a String
+            html = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+
+        } catch (Exception e) {
+            LOG.error("Could not generate HTML content for path '{}'", path, e);
+        }
+        return html;
+    }

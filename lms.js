@@ -3542,3 +3542,40 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
         }
         return html;
     }
+
+ @Reference
+    private DistributionService distributionService;
+
+    @Override
+    public JobConsumer.JobResult process(Job job) {
+        try (ResourceResolver resolver = resolverFactory.getServiceResourceResolver(null)) {
+            Map<String, Object> properties = job.getProperty(NotificationConstants.EVENT_PROPERTY_DISTRIBUTION);
+            String path = (String) properties.get("path");
+            String action = (String) properties.get("action");
+
+            DistributionRequestType requestType = getDistributionRequestType(action);
+            if (requestType != null) {
+                DistributionRequest distributionRequest = new DistributionRequest(requestType, path);
+                distributionService.distribute("my-distribution-agent", distributionRequest);
+            }
+
+            return JobConsumer.JobResult.OK;
+        } catch (Exception e) {
+            // Handle exception
+            return JobConsumer.JobResult.FAILED;
+        }
+    }
+
+    private DistributionRequestType getDistributionRequestType(String action) {
+        switch (action) {
+            case "add":
+                return DistributionRequestType.ADD;
+            case "delete":
+                return DistributionRequestType.DELETE;
+            case "modify":
+                return DistributionRequestType.MODIFY;
+            default:
+                return null;
+        }
+    }
+}

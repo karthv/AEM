@@ -3629,3 +3629,53 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
         }
     }
 }
+
+<dependencies>
+    <!-- Apache Sling API -->
+    <dependency>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.api</artifactId>
+        <version>2.22.0</version> <!-- Use the latest stable version -->
+        <scope>provided</scope>
+    </dependency>
+
+    <!-- Apache Sling Resource Resolver -->
+    <dependency>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.resourceresolver</artifactId>
+        <version>1.10.0</version> <!-- Use the latest stable version -->
+        <scope>provided</scope>
+    </dependency>
+
+    <!-- Apache Sling Distribution API -->
+    <dependency>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.distribution.api</artifactId>
+        <version>0.3.0</version> <!-- Use the latest stable version -->
+        <scope>provided</scope>
+    </dependency>
+
+    <!-- Apache Sling Distribution Core -->
+    <dependency>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.distribution.core</artifactId>
+        <version>0.3.0</version> <!-- Use the latest stable version -->
+        <scope>provided</scope>
+    </dependency>
+
+    <!-- SLF4J API for Logging -->
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.30</version> <!-- Use the latest stable version -->
+    </dependency>
+
+    <!-- OSGi Core -->
+    <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.core</artifactId>
+        <version>6.0.0</version>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+

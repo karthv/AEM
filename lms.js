@@ -3679,3 +3679,197 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
     </dependency>
 </dependencies>
 
+
+{
+	
+	private static final Logger LOG = LoggerFactory.getLogger(ZipValidationProcess.class);
+	private static final Pattern FILE_WITH_EXTENSION = Pattern.compile(".*\\.\\w{3,4}$");
+	private static final String INVALID_THUMB_ASSET_PATH =
+		      "content/dam/_CSS/abc/invalid_asset_thumb.png";
+	 private static final String INVALID_THUMB_RENDITION_NAME =
+		      DamConstants.PREFIX_ASSET_THUMBNAIL + ".319.319.png";
+	 
+	@Override
+	public void execute(WorkItem workItem, WorkflowSession workflowSession, MetaDataMap metaDataMap)
+			throws WorkflowException {
+		String scormFolderPath = metaDataMap.get("scormFolderPath", "/content/dam/abc/");
+		boolean isInvalidZip = false;
+		try {
+			ResourceResolver resolver = workflowSession.adaptTo(ResourceResolver.class);
+			Session session = workflowSession.adaptTo(Session.class);
+			Asset asset = getAsset(workItem, resolver);
+			if (null == asset || !asset.getPath().startsWith(scormFolderPath)) {
+				LOG.warn("Could not get asset for payload for scorm {}", workItem.getWorkflowData().getPayload());
+				return;
+			}
+			Node metaDataNode = AssetUtils.getMetaDataNode(asset);
+			isInvalidZip = validateZip(asset, metaDataMap, metaDataNode);
+			
+			if (isInvalidZip) {
+				LOG.warn("Invalid scorm zip file has been uploaded, asset will be marked as invalid");
+
+				updateAssetStatus(metaDataNode, DamConstants.ASSET_STATUS_REJECTED);
+				//Add dam:assetState  : processed
+				Node assetNode = asset.adaptTo(Node.class);
+				Node contentNode = AssetUtils.getNode(assetNode, com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT);
+				contentNode.setProperty(DamConstants.DAM_ASSET_STATE, DamConstants.DAM_ASSET_STATE_PROCESSED);
+				
+				removeRendition(asset, session);
+				addInvalidThumbnail(asset, resolver, session);
+				workflowSession.terminateWorkflow(workItem.getWorkflow());
+			}else {
+				updateAssetStatus(metaDataNode, DamConstants.ASSET_STATUS_APPROVED);
+			}
+		} catch (Exception e) {
+			LOG.error("Exception in Scorm ZipValidationProcess {}", e.getMessage());
+		}
+	}
+	/**Returns true if file is invalid otherwise false */
+	private boolean validateZip(Asset asset, MetaDataMap metaDataMap, Node metaDataNode) throws RepositoryException, IOException {
+		Long maxBytes = metaDataMap.get("maxBytes", 524288000L);
+		Long maxNumItems = metaDataMap.get("maxNumItems", 5000L);
+		Long mbMultiplier = metaDataMap.get("mbMultiplier", 5L);
+		
+		LOG.info("asset name :{}", asset.getName());
+		Long extractedZipSize = calculateExtractedZipSize(asset);
+		
+		/**Invalid zip when extractedZipSize =0 */
+		if(extractedZipSize==0L) {
+			return true;						
+		}
+		//&& metaDataNode.hasProperty("dam:extracted")
+		if (patternMatcherForFilename(asset.getName()) && metaDataNode != null ) {
+				if (!metaDataNode.getProperty("dam:Content").getString().contains("imsmanifest.xml")) {
+					LOG.error("Uploaded asset is not a scorm zip file:: {}", asset.getPath());
+					return true;
+				}
+			if (metaDataNode.hasProperty(DamConstants.DAM_SIZE)
+					&& (metaDataNode.getProperty(DamConstants.DAM_SIZE).getLong() > maxBytes
+							|| (extractedZipSize > (metaDataNode.getProperty(DamConstants.DAM_SIZE).getLong()*mbMultiplier)))) {
+				LOG.error(
+						"Configured max number of bytes exceeded or extracted file size will be above threshhold {}",
+						asset.getPath());
+				return true;
+			}
+			if (metaDataNode.hasProperty("dam:FileCount")
+					&& metaDataNode.getProperty("dam:FileCount").getLong() > maxNumItems) {
+				LOG.error("Configured max number of files reached {}", asset.getPath());
+				return true;
+			}
+		} else {
+			LOG.error("Either Zip filename is not valid or metaDataNode is empty {}",asset.getPath());
+			return true;
+		}
+		return false;
+	}
+	
+	private Long calculateExtractedZipSize(Asset asset) throws IOException {
+		Long uncompressedZipSize = 0L;
+		try(ZipInputStream zStream = new ZipInputStream(new BufferedInputStream (asset.getOriginal().getStream()))){
+			LOG.info("Calculating extracted zip size");
+			ZipEntry zipEntry;
+			
+			while ((zipEntry = zStream.getNextEntry()) != null) {
+				uncompressedZipSize +=zipEntry.getSize();
+				}
+			}catch (Exception e) {
+				uncompressedZipSize = 0L;
+				LOG.error("Exception while calculating uncompressed zip size:{}", e.getMessage());
+				}
+		return uncompressedZipSize;
+		}
+
+	private void updateAssetStatus(Node metaDataNode, String assetStatus) throws RepositoryException {
+		if (null != metaDataNode) {
+			metaDataNode.setProperty(DamConstants.ASSET_STATUS_PROPERTY, assetStatus);
+		}
+	}
+	
+	private void removeRendition(Asset asset, Session session) throws RepositoryException {
+		asset.getRenditions();
+		List<Rendition> renditions = asset.getRenditions();
+		LOG.info("Found '{}' asset renditions for asset '{}'.", renditions.size(), asset.getPath());
+		for (Rendition rendition : renditions) {
+			String name = rendition.getName();
+			if (DamConstants.ORIGINAL_FILE.equals(name)) {
+			    asset.removeRendition(name);
+			    LOG.debug("Removed rendition '{}' of asset '{}'.", name, asset.getPath());
+			    }
+			}
+		session.save();
+	}
+	
+	private boolean patternMatcherForFilename(String filename) {
+		String regex = "^[a-z0-9]{1,15}+.zip$";
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(filename);
+		return matcher.matches();
+	}
+	
+	private void addInvalidThumbnail(Asset asset, ResourceResolver resolver, Session session) {
+		try {
+			LOG.info("Creating 'invalid asset' renditions for asset '{}'.", asset.getPath());
+			Asset thumbnail = getAsset(LibraryConstants.FORWARD_SLASH + INVALID_THUMB_ASSET_PATH, resolver);
+
+			// Set thumbnail rendition
+			if (thumbnail != null && thumbnail.getOriginal() != null) {
+				LOG.debug("Thumbnail is present in the DAM");
+				asset.addRendition(INVALID_THUMB_RENDITION_NAME, thumbnail.getOriginal().getBinary(), "");
+			} else {
+				LOG.warn("Could not find 'invalid asset' thumbnail rendition source asset '{}'.",
+						INVALID_THUMB_ASSET_PATH);
+			}
+			session.save();
+		} catch (Exception e) {
+			LOG.warn("Could not create 'invalid asset' renditions for asset '{}'. {}", asset.getPath(), e.getMessage());
+		}
+
+	}
+	
+	 /** Returns an asset object for a given payload. The payload should be the path to an asset. */
+	 private Asset getAsset(WorkItem item, ResourceResolver resourceResolver) {
+	    String payload = item.getWorkflowData().getPayload().toString();
+	    if (StringUtils.isEmpty(payload)) {
+	    	LOG.warn("no payload found");
+	      return null;
+	    }
+
+	    if (resourceResolver == null) {
+	    	LOG.warn("could not retrieve resource resolver:: {}", payload);
+	      return null;
+	    }
+
+	    Resource assetResource = resourceResolver.getResource(payload);
+	    while (assetResource != null
+	        && assetResource.getParent() != null
+	        && !isAssetResource(assetResource)) {
+	      assetResource = assetResource.getParent();
+	    }
+
+	    if (assetResource == null) {
+	    	LOG.error("payload {} does not exist.", payload);
+	      return null;
+	    }
+
+	    return assetResource.adaptTo(Asset.class);
+	  }
+
+	  private boolean isAssetResource(Resource assetResource) {
+	    return StringUtils.isNotEmpty(assetResource.getPath())
+	        && FILE_WITH_EXTENSION.matcher(assetResource.getPath()).find();
+	  }
+	  
+	  private Asset getAsset(final String path, final ResourceResolver resolver) {
+		    Asset asset = null;
+		    if (StringUtils.isNotEmpty(path) && resolver != null) {
+		      // Resolve asset based on path or subnode paths, e.g. original rendition file, content node,
+		      // or metadata node
+		      Resource resource = resolver.getResource(path);
+		      if (resource != null) {
+		        asset = DamUtil.resolveToAsset(resource);
+		      }
+		    }
+		    return asset;
+		}
+	  
+}

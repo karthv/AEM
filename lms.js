@@ -3888,3 +3888,53 @@ scripts=[
   end
   "
 ]
+
+
+
+
+package com.example.core.listeners;
+
+import org.apache.sling.event.jobs.JobManager;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.replication.ReplicationAction;
+import com.day.cq.replication.ReplicationActionType;
+import com.day.cq.replication.ReplicationEvent;
+
+@Component(service = EventHandler.class, immediate = true,
+    property = {
+        "service.description=Replication Listener on publish",
+        EventConstants.EVENT_TOPIC + "=com/adobe/granite/replication"
+    }
+)
+public class ReplicationListener implements EventHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(ReplicationListener.class);
+
+    @Reference
+    private JobManager jobManager;
+
+    @Override
+    public void handleEvent(final Event event) {
+        final String METHOD_NAME = "handleEvent";
+        LOG.info("{} - Received event: {}", METHOD_NAME, event);
+
+        try {
+            ReplicationEvent replicationEvent = ReplicationEvent.fromEvent(event);
+            ReplicationAction replicationAction = replicationEvent.getReplicationAction();
+            ReplicationActionType actionType = replicationAction.getType();
+            String filePath = replicationAction.getPath();
+            LOG.info("{} - Replication action type: {}, Path: {}", METHOD_NAME, actionType, filePath);
+
+            // Add your job processing logic here
+        } catch (Exception e) {
+            LOG.error("{} - Error processing replication event", METHOD_NAME, e);
+        }
+    }
+}
+

@@ -3873,3 +3873,18 @@ protected String getHtmlContent(String path, ResourceResolver resolver) {
 		}
 	  
 }
+
+
+scripts=[
+  "
+  create service user asset
+  set principal ACL for asset-
+    allow jcr:all on /content/dam/scorm
+    allow jcr:read, jcr:write on /home/users/system/asset-
+    allow crx:replicate on /content/dam/scorm
+    allow jcr:read, jcr:write on /content/dam/scorm/jcr:content/metadata
+    allow jcr:read, jcr:write on /var/workflow/instances
+    allow jcr:read, jcr:write on /var
+  end
+  "
+]

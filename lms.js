@@ -4144,3 +4144,6 @@ public class EventListenerExample implements EventListener {
 }
 
 
+Pattern.compile(SCORM_PATH + "/.+\\.zip(/.*)?");
+
+

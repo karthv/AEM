@@ -3938,3 +3938,86 @@ public class ReplicationListener implements EventHandler {
     }
 }
 
+package com.aem.community.core.services;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.event.jobs.JobManager;
+import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Component(immediate = true, service = EventHandler.class, property = {
+        Constants.SERVICE_DESCRIPTION + "= This event handler listens for resource removal or deletion events in /content/dam/scorm",
+        EventConstants.EVENT_TOPIC + "=org/apache/sling/api/resource/Resource/REMOVED",
+        EventConstants.EVENT_FILTER + "=(path=/content/dam/scorm/.*)"
+})
+public class ScormResourceEventHandler implements EventHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ScormResourceEventHandler.class);
+    private static final Pattern ZIP_FILE_PATTERN = Pattern.compile("/content/dam/scorm/.+\\.zip(/jcr:content/metadata)?");
+
+    @Reference
+    private ResourceResolverFactory resolverFactory;
+
+    @Reference
+    private JobManager jobManager;
+
+    private ResourceResolver resolver;
+
+    @Override
+    public void handleEvent(Event event) {
+        try {
+            getServiceResourceResolver();
+            String resourcePath = event.getProperty("path").toString();
+            log.info("Event triggered for path: {}", resourcePath);
+
+            if (isPublishEnvironment() && isValidZipFilePath(resourcePath)) {
+                String fileName = getFileName(resourcePath);
+                log.info("Processing file: {}", fileName);
+
+                Map<String, Object> properties = new HashMap<>();
+                properties.put("path", resourcePath);
+                properties.put("fileName", fileName);
+                jobManager.addJob("aem/myjob", properties);
+            }
+        } catch (LoginException e) {
+            log.error("Exception occurred", e);
+        }
+    }
+
+    private void getServiceResourceResolver() throws LoginException {
+        Map<String, Object> params = new HashMap<>();
+        params.put(ResourceResolverFactory.SUBSERVICE, "myEventService");
+        resolver = resolverFactory.getServiceResourceResolver(params);
+    }
+
+    private boolean isPublishEnvironment() {
+        // Implement logic to check if the current environment is publish
+        // This can be done by checking a system property or configuration
+        return "publish".equals(System.getProperty("runmode"));
+    }
+
+    private boolean isValidZipFilePath(String path) {
+        Matcher matcher = ZIP_FILE_PATTERN.matcher(path);
+        return matcher.matches();
+    }
+
+    private String getFileName(String path) {
+        int lastSlashIndex = path.lastIndexOf('/');
+        return (lastSlashIndex != -1) ? path.substring(lastSlashIndex + 1) : path;
+    }
+}
+
+

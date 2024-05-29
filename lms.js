@@ -4147,3 +4147,110 @@ public class EventListenerExample implements EventListener {
 Pattern.compile(SCORM_PATH + "/.+\\.zip(/.*)?");
 
 
+
+
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.event.jobs.JobManager;
+import org.apache.sling.jcr.api.SlingRepository;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.EventListener;
+import javax.jcr.observation.ObservationManager;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Component(service = EventListener.class, immediate = true)
+public class ScormFolderEventListener implements EventListener {
+
+    private static final String SCORM_PATH = "/content/dam/abc";
+    private static final Pattern ZIP_FILE_PATTERN =  Pattern.compile(SCORM_PATH + "/.+\\.zip(/.*)?");
+    private static final Logger log = LoggerFactory.getLogger(ScormFolderEventListener.class);
+
+    @Reference
+    private ResourceResolverFactory resolverFactory;
+
+    private ResourceResolver resolver;
+
+    @Reference
+    private SlingRepository repository;
+
+    private Session session;
+
+    @Reference
+    private JobManager jobManager;
+
+    @Reference
+    private EnvironmentTypeProvider environmentTypeProvider;
+
+    @Activate
+    protected void activate(ComponentContext componentContext) {
+        try {
+            getServiceResourceResolver();
+            session = resolver.adaptTo(Session.class);
+            addEvent();
+        } catch (LoginException | RepositoryException e) {
+            log.error("Exception occurred {}", e);
+        }
+    }
+
+    @Override
+    public void onEvent(EventIterator events) {
+        try {
+            while (events.hasNext()) {
+                Event event = events.nextEvent();
+                String eventPath = event.getPath();
+                log.info("Scorm Extraction file remove Event triggered for path: {}", eventPath);
+                if (!environmentTypeProvider.isAuthor() && isValidZipFilePath(eventPath)) {
+                    String UnarchivedFolderPath = StringUtils.removeEnd(eventPath, ".zip");
+                    log.info("Processing file: {}", UnarchivedFolderPath);
+                    Map<String, Object> properties = new HashMap<>();
+                    properties.put("path", UnarchivedFolderPath);
+                    jobManager.addJob("remove/asset", properties);
+                }
+            }
+        } catch (RepositoryException e) {
+            log.error("ScormFolderEventListener Exception occurred {}", e);
+        }
+    }
+    @Deactivate
+    protected void deactivate() {
+        if (session != null) {
+            session.logout();
+        }
+    }
+    private void getServiceResourceResolver() throws LoginException {
+        Map<String, Object> params = new HashMap<>();
+        params.put(ResourceResolverFactory.SUBSERVICE, AppConstants.SUB_SERVICE);
+        resolver = resolverFactory.getServiceResourceResolver(params);
+    }
+    private void addEvent() throws UnsupportedRepositoryOperationException, RepositoryException {
+        ObservationManager observationManager = session.getWorkspace().getObservationManager();
+        observationManager.addEventListener(this,
+                Event.NODE_REMOVED ,
+                SCORM_PATH, true, null, null, false);
+    }
+
+    private boolean isValidZipFilePath(String path) {
+        Matcher matcher = ZIP_FILE_PATTERN.matcher(path);
+        return matcher.matches();
+    }
+
+
+}

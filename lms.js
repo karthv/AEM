@@ -4380,3 +4380,12 @@ public class ScormFolderEventListener implements EventListener {
     }
 }
 
+org.apache.sling.jcr.repoinit.RepositoryInitializer-oshynDemo-service-users.config
+scripts=["
+    create service user oshynDemo-replication-service-user with forced path system/cq:services/oshyn-demo
+    set principal ACL for oshynDemo-replication-service-user
+    allow jcr:versionManagement,jcr:read,crx:replicate,rep:write,jcr:lockManagement on /content/oshynDemo
+    allow jcr:versionManagement,jcr:read,crx:replicate,rep:write,jcr:lockManagement on /conf
+    allow jcr:read on /apps
+    end
+"]

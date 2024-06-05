@@ -4389,3 +4389,6 @@ scripts=["
     allow jcr:read on /apps
     end
 "]
+
+
+allow jcr:read, jcr:write, jcr:modifyProperties, jcr:lockManagement, jcr:versionManagement, jcr:nodeTypeManagement, jcr:retentionManagement, jcr:lifecycleManagement, jcr:all on /content/dam

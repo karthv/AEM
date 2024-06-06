@@ -4392,3 +4392,13 @@ scripts=["
 
 
 allow jcr:read, jcr:write, jcr:modifyProperties, jcr:lockManagement, jcr:versionManagement, jcr:nodeTypeManagement, jcr:retentionManagement, jcr:lifecycleManagement, jcr:all on /content/dam
+
+
+scripts=["
+    create service user oshynDemo-replication-service-user with forced path system/cq:services/oshyn-demo
+    set principal ACL for oshynDemo-replication-service-user
+    allow jcr:versionManagement,jcr:read,crx:replicate,rep:write,jcr:lockManagement on /content/oshynDemo
+    allow jcr:versionManagement,jcr:read,crx:replicate,rep:write,jcr:lockManagement on /conf
+    allow jcr:read on /apps
+    end
+"]

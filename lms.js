@@ -3210,3 +3210,54 @@ function viewModel(){
         // Convert JSON object to string
         json = gson.toJson(jsonObject);
     }
+
+
+(function(document, $) {
+    'use strict';
+
+    // The maximum number of items allowed in the multifield
+    var MAX_ITEMS = 5;
+
+    $(document).on("dialog-ready", function() {
+        var $multifield = $(".limited-multifield");
+        var $addButton = $multifield.find(".js-coral-Multifield-add");
+
+        // Function to check the item count and disable the add button if the limit is reached
+        function checkItemCount() {
+            var itemCount = $multifield.find(".js-coral-Multifield-input-template > .coral-Form-fieldwrapper").length;
+            if (itemCount >= MAX_ITEMS) {
+                $addButton.attr("disabled", true);
+                showLimitMessage();
+            } else {
+                $addButton.removeAttr("disabled");
+                hideLimitMessage();
+            }
+        }
+
+        // Show a message when the limit is reached
+        function showLimitMessage() {
+            if ($("#limit-msg").length === 0) {
+                $multifield.append('<div id="limit-msg" class="coral-Form-fieldinfo coral-Form-fieldinfo--error">You can add a maximum of ' + MAX_ITEMS + ' items.</div>');
+            }
+        }
+
+        // Hide the limit message
+        function hideLimitMessage() {
+            $("#limit-msg").remove();
+        }
+
+        // Initial check on dialog load
+        checkItemCount();
+
+        // Check item count on add or remove actions
+        $multifield.on("click", ".js-coral-Multifield-add", function() {
+            setTimeout(checkItemCount, 100);
+        });
+
+        $multifield.on("click", ".js-coral-Multifield-remove", function() {
+            setTimeout(checkItemCount, 100);
+        });
+    });
+
+})(document, Granite.$);
+

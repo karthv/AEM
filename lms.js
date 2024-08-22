@@ -3286,6 +3286,10 @@ function viewModel(){
                 // Disable the Add button if the max limit is reached
                 if (totalPanels >= max) {
                     addButton.attr("disabled", true);
+			 var maxInfo = $("<strong class='max-items-info' style='color: red; margin-left: 10px;'>Maximum number of items allowed are: " + max + "</strong>");
+                    
+                    // Append the info message after the Add button
+                    addButton.after(maxInfo);
                 } else {
                     addButton.attr("disabled", false);
                 }

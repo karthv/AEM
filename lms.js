@@ -3261,3 +3261,41 @@ function viewModel(){
 
 })(document, Granite.$);
 
+(function ($, $document) {
+    "use strict";
+
+    $.validator.register("foundation.validation.validator", {
+        selector: "coral-multifield",
+        validate: function(el) {
+
+            var totalPanels = el[0].items.getAll().length;
+            var min, max;
+            
+            // Disable Add button functionality
+            var addButton = $(el).find(".js-coral-Multifield-add");
+
+            if ($(el).data("min-item")) {
+                min = $(el).data("min-item");
+                if (totalPanels < min) {
+                    return "<strong style='color: red;'>Minimum number of items required are: " + min + "</strong>";
+                }
+            }
+
+            if ($(el).data("max-item")) {
+                max = $(el).data("max-item");
+                // Disable the Add button if the max limit is reached
+                if (totalPanels >= max) {
+                    addButton.attr("disabled", true);
+                } else {
+                    addButton.attr("disabled", false);
+                }
+
+                if (totalPanels > max) {
+                    return "<strong style='color: red;'>Maximum number of items allowed are: " + max + "</strong>";
+                }
+            }
+        }
+    });
+
+})($, $(document));
+

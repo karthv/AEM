@@ -105,3 +105,53 @@
     });
   });
 })(document, Granite.$);
+
+
+
+
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+public class HtmlContentUtil {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HtmlContentUtil.class);
+
+    /**
+     * Fetches HTML content from the given request's URL.
+     *
+     * @param httpRequest the original HTTP request to set WCMMode
+     * @return            the HTML content as a String, or null if retrieval fails
+     */
+    public static String getHtmlContent(HttpServletRequest httpRequest) {
+        String url = httpRequest.getRequestURL().toString();
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpGet httpGet = new HttpGet(url);
+            httpGet.setHeader("Accept", "text/html");
+
+            HttpClientResponseHandler<String> responseHandler = (ClassicHttpResponse response) -> {
+                if (response.getCode() == 200) {
+                    return EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+                } else {
+                    LOG.error("Failed to retrieve HTML content. Status code: {}", response.getCode());
+                    return null;
+                }
+            };
+
+            return httpClient.execute(httpGet, responseHandler);
+        } catch (IOException e) {
+            LOG.error("Error while fetching HTML content: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+}

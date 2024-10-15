@@ -155,3 +155,31 @@ public class HtmlContentUtil {
         }
     }
 }
+
+import org.apache.sling.api.request.builder.RequestBuilder;
+import org.apache.sling.api.response.builder.ResponseBuilder;
+
+public static String getHtmlContent(HttpServletRequest httpRequest, ResourceResolver resolver, SlingRequestProcessor requestProcessor) {
+    String htmlContent = null;
+    WCMMode.DISABLED.toRequest(httpRequest);
+
+    try (ByteArrayOutputStream htmlByteArrayOutputStream = new ByteArrayOutputStream()) {
+        HttpServletRequest processedRequest = RequestBuilder.create()
+                .withRequest(httpRequest)
+                .build();
+
+        HttpServletResponse processedResponse = ResponseBuilder.create()
+                .withOutputStream(htmlByteArrayOutputStream)
+                .build();
+
+        requestProcessor.processRequest(processedRequest, processedResponse, resolver);
+        processedResponse.getWriter().flush();
+        htmlContent = htmlByteArrayOutputStream.toString(StandardCharsets.UTF_8);
+
+    } catch (ServletException | IOException e) {
+        LOG.error("Could not generate HTML content: {}", e.getMessage());
+    }
+
+    return htmlContent;
+}
+

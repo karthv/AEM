@@ -3332,3 +3332,18 @@ function viewModel(){
 
         return contentBuilder.toString();
     }
+
+
+
+/apps/system/config/org.apache.sling.commons.threads.impl.DefaultThreadPool-myThreadPool.cfg.json
+
+json
+Copy code
+{
+  "minPoolSize": 5,
+  "maxPoolSize": 10,
+  "queueSize": -1,
+  "priority": 5,
+  "daemon": true,
+  "shutdownWaitTimeMs": 30000
+}

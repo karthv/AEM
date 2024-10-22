@@ -3303,3 +3303,32 @@ function viewModel(){
 
 })($, $(document));
 
+
+ public static String getHtmlContent(HttpServletRequest httpRequest, ResourceResolver resolver) {
+        // Derive the path from the request
+        String resourcePath = httpRequest.getRequestURI(); // or another method to get the path
+        StringBuilder contentBuilder = new StringBuilder();
+
+        // Fetch the resource using the resource resolver
+        Resource resource = resolver.getResource(resourcePath);
+        if (resource == null) {
+            LOG.error("Resource not found at path: {}", resourcePath);
+            return null;
+        }
+
+        try (InputStream inputStream = resource.adaptTo(InputStream.class);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+
+            // Read the HTML file line by line and build the content string
+            String line;
+            while ((line = reader.readLine()) != null) {
+                contentBuilder.append(line).append(System.lineSeparator());
+            }
+
+        } catch (IOException e) {
+            LOG.error("Error reading HTML content from path '{}': {}", resourcePath, e.getMessage(), e);
+            return null;
+        }
+
+        return contentBuilder.toString();
+    }

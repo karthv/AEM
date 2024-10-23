@@ -3347,3 +3347,11 @@ Copy code
   "daemon": true,
   "shutdownWaitTimeMs": 30000
 }
+
+
+Led the DCC code migration from on-prem to AEMaaCS solely, receiving client appreciation for the successful delivery.
+Achieved zero defects post-migration, improving platform performance and stability.
+Reduced SonarQube minor issues from 249 to 63 through thorough testing and optimization.
+Mentored junior developers, helping them achieve 50% code coverage.
+Improved overall code quality and system reliability through adherence to best coding practices.
+

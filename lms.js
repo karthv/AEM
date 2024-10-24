@@ -3354,39 +3354,67 @@ Copy code
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.engine.SlingRequestProcessor;
-import org.apache.sling.api.request.SlingHttpServletRequestBuilder;
-import org.apache.sling.api.response.SlingHttpServletResponseBuilder;
 
 import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import javax.servlet.http.HttpServletResponse;
 
-public static String getHtmlContent(String url, ResourceResolver resolver, SlingRequestProcessor requestProcessor) {
-    String htmlContent = null;
+public class HtmlContentFetcher {
 
-    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-        // Simulate the internal request using the Sling Builder API
-        SlingHttpServletRequest simulatedRequest = SlingHttpServletRequestBuilder.create()
-                .withResourceResolver(resolver)
-                .withMethod("GET")
-                .withPath(url)
-                .build();
+    // Method to get HTML content from a given URL
+    public static String getHtmlContent(String url, ResourceResolver resolver, SlingRequestProcessor requestProcessor) {
+        String htmlContent = null;
 
-        // Build the response using the builder
-        SlingHttpServletResponse simulatedResponse = SlingHttpServletResponseBuilder.create()
-                .withOutputStream(outputStream)
-                .build();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            // Create a Sling HTTP request using Builders
+            SlingHttpServletRequest simulatedRequest = Builders.request()
+                    .resourceResolver(resolver)
+                    .method("GET")
+                    .path(url)
+                    .build();
 
-        // Process the internal request using the SlingRequestProcessor
-        requestProcessor.processRequest(simulatedRequest, simulatedResponse);
+            // Create a response using a custom wrapper
+            SlingHttpServletResponse simulatedResponse = new SlingHttpServletResponseWrapper(outputStream);
 
-        // Get the HTML content from the output stream
-        htmlContent = outputStream.toString(StandardCharsets.UTF_8);
+            // Process the internal request using the SlingRequestProcessor
+            requestProcessor.processRequest(simulatedRequest, simulatedResponse);
 
-    } catch (Exception e) {
-        LOG.error("Error processing internal AEM request: {}", e.getMessage(), e);
+            // Get the HTML content from the output stream
+            htmlContent = outputStream.toString(StandardCharsets.UTF_8);
+
+        } catch (Exception e) {
+            // Handle exceptions gracefully
+            System.err.println("Error processing internal AEM request: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return htmlContent;
     }
-    
-    return htmlContent;
-}
+
+    // Wrapper class for SlingHttpServletResponse
+    static class SlingHttpServletResponseWrapper extends SlingHttpServletResponse {
+        private final ByteArrayOutputStream outputStream;
+
+        public SlingHttpServletResponseWrapper(ByteArrayOutputStream outputStream) {
+            this.outputStream = outputStream;
+        }
+
+        @Override
+        public PrintWriter getWriter() {
+            return new PrintWriter(outputStream);
+        }
+
+        @Override
+        public void setContentType(String type) {
+            // Implement as needed
+        }
+
+        @Override
+        public void setStatus(int sc) {
+            // Implement as needed
+        }
+
 

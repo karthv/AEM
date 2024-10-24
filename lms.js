@@ -3349,9 +3349,44 @@ Copy code
 }
 
 
-Led the DCC code migration from on-prem to AEMaaCS solely, receiving client appreciation for the successful delivery.
-Achieved zero defects post-migration, improving platform performance and stability.
-Reduced SonarQube minor issues from 249 to 63 through thorough testing and optimization.
-Mentored junior developers, helping them achieve 50% code coverage.
-Improved overall code quality and system reliability through adherence to best coding practices.
+
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.engine.SlingRequestProcessor;
+import org.apache.sling.api.request.SlingHttpServletRequestBuilder;
+import org.apache.sling.api.response.SlingHttpServletResponseBuilder;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+
+public static String getHtmlContent(String url, ResourceResolver resolver, SlingRequestProcessor requestProcessor) {
+    String htmlContent = null;
+
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        // Simulate the internal request using the Sling Builder API
+        SlingHttpServletRequest simulatedRequest = SlingHttpServletRequestBuilder.create()
+                .withResourceResolver(resolver)
+                .withMethod("GET")
+                .withPath(url)
+                .build();
+
+        // Build the response using the builder
+        SlingHttpServletResponse simulatedResponse = SlingHttpServletResponseBuilder.create()
+                .withOutputStream(outputStream)
+                .build();
+
+        // Process the internal request using the SlingRequestProcessor
+        requestProcessor.processRequest(simulatedRequest, simulatedResponse);
+
+        // Get the HTML content from the output stream
+        htmlContent = outputStream.toString(StandardCharsets.UTF_8);
+
+    } catch (Exception e) {
+        LOG.error("Error processing internal AEM request: {}", e.getMessage(), e);
+    }
+    
+    return htmlContent;
+}
 

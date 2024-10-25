@@ -1,1 +1,80 @@
 
+Steps to Configure Custom Logs in AEM:
+1. Use SLF4J for Logging in Code
+AEM uses SLF4J for logging. To create custom logs in your Java code, you can define a logger as follows:
+
+java
+Copy code
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class MyComponent {
+    private static final Logger LOG = LoggerFactory.getLogger(MyComponent.class);
+
+    public void myMethod() {
+        LOG.info("This is an info message");
+        LOG.error("This is an error message");
+        LOG.debug("This is a debug message");
+    }
+}
+The LoggerFactory.getLogger(MyComponent.class) method ensures that logs from this class are captured with the appropriate log category.
+
+2. Create a Custom Log File via OSGi Configuration
+To capture the logs into a custom file, you need to configure a custom log file for the specific logger (category) using AEM’s OSGi configuration manager. Here's how you can do this:
+
+Access OSGi Web Console:
+
+Navigate to http://<AEM-Host>:<Port>/system/console/configMgr
+Log in with administrative credentials.
+Create a Logger Configuration:
+
+Look for the configuration named Apache Sling Logging Logger Configuration in the OSGi console.
+Click + to create a new configuration.
+Configure the Logger: In the configuration, you will need to set up the following properties:
+
+Log Level: Choose the log level (INFO, DEBUG, ERROR, etc.).
+Log File: Specify the path where the log file will be stored. For example: logs/my-custom-log.log.
+Log Category: This should match the fully qualified class name (FQCN) of your Java class, or a package if you want to log multiple classes. For example, if you want to log all classes under com.mycompany.myproject, use that as the category.
+Log Format: You can define a custom format for your logs (optional).
+Example configuration:
+
+Log Level: INFO
+Log File: logs/mycomponent.log
+Log Category: com.mycompany.myproject.components.MyComponent
+Click Save.
+
+Configure a Log File Appender: You also need to configure a log file appender:
+
+Look for Apache Sling Logging Writer Configuration in the OSGi console.
+Click + to create a new writer configuration.
+In the configuration:
+
+Log File: Specify the file path (same as above, e.g., logs/mycomponent.log).
+Number of Rotated Files: Specify the number of log files to keep.
+Maximum File Size: Specify the size before a new log file is created.
+3. Customizing the Log Format (Optional)
+You can customize the log format in the Apache Sling Logging Writer Configuration by setting the Log Format property. The format uses Logback's pattern syntax.
+
+Example pattern:
+
+perl
+Copy code
+[%d{ISO8601}] [%thread] %-5level %logger{36} - %msg%n
+This will print log messages in the format:
+
+csharp
+Copy code
+[2024-10-15 14:28:33] [main] INFO  com.mycompany.myproject.components.MyComponent - This is an info message
+4. Testing the Custom Log
+Once the configuration is set, you can trigger the functionality in your code and check the log file (e.g., logs/mycomponent.log) to see the custom logs being captured.
+
+You can view the logs using the tail command in your terminal:
+
+bash
+Copy code
+tail -f <AEM_installation_directory>/crx-quickstart/logs/mycomponent.log
+Or check them directly in the AEM environment by navigating to the logs directory:
+
+bash
+Copy code
+/crx-quickstart/logs/

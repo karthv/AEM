@@ -3462,3 +3462,50 @@ public static String getHtmlContent(HttpServletRequest request, HttpServletRespo
     return htmlContent;
 }
 
+
+
+
+	    /**
+     * Retrieves the HTML content from a specified URL within the AEM environment.
+     *
+     * @param request  the HttpServletRequest used for dispatching
+     * @param response the HttpServletResponse used to capture the output
+     * @param url      the URL to retrieve HTML content from
+     * @return the HTML content as a UTF-8 encoded string, or null if retrieval fails
+     */
+    public static String getHtmlContent(HttpServletRequest request, HttpServletResponse response, String url) {
+        WCMMode.DISABLED.toRequest(request); // Disable WCM edit mode
+        String htmlContent = null;
+
+        // Capture the HTML output to a ByteArrayOutputStream
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             PrintWriter writer = new PrintWriter(outputStream, true, StandardCharsets.UTF_8)) {
+
+            // Create a RequestDispatcher for the target URL
+            RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+            if (dispatcher == null) {
+                LOG.error("RequestDispatcher for URL '{}' is null. Unable to retrieve content.", url);
+                return null;
+            }
+
+            // Wrap the response to capture output in the PrintWriter
+            HttpServletResponse capturingResponse = new HttpServletResponseWrapper(response) {
+                @Override
+                public PrintWriter getWriter() {
+                    return writer;
+                }
+            };
+
+            // Include the content from the target resource
+            dispatcher.include(request, capturingResponse);
+
+            // Convert the captured output to a UTF-8 encoded string
+            htmlContent = outputStream.toString(StandardCharsets.UTF_8);
+
+        } catch (ServletException | IOException e) {
+            LOG.error("Exception while generating HTML content from URL '{}': {}", url, e.getMessage(), e);
+        }
+
+        return htmlContent;
+    }
+}

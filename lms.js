@@ -3418,3 +3418,47 @@ public class HtmlContentFetcher {
         }
 
 
+
+
+
+
+	    import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+public static String getHtmlContent(HttpServletRequest request, HttpServletResponse response, String url, ResourceResolver resolver) {
+    String htmlContent = null;
+    WCMMode.DISABLED.toRequest(request);
+
+    // Use a ByteArrayOutputStream to capture the HTML content
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+         PrintWriter writer = new PrintWriter(outputStream, true, StandardCharsets.UTF_8)) {
+
+        // Create a RequestDispatcher to include the content from the specified URL
+        RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+
+        // Set up a wrapper response with the custom PrintWriter for capturing output
+        HttpServletResponse capturingResponse = new HttpServletResponseWrapper(response) {
+            @Override
+            public PrintWriter getWriter() {
+                return writer;
+            }
+        };
+
+        // Include the target resource content
+        dispatcher.include(request, capturingResponse);
+
+        // Convert the captured output stream to a UTF-8 string
+        htmlContent = outputStream.toString(StandardCharsets.UTF_8);
+    } catch (ServletException | IOException e) {
+        LOG.error("Could not generate HTML content: {}", e.getMessage(), e);
+    }
+
+    return htmlContent;
+}
+

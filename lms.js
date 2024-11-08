@@ -3232,3 +3232,162 @@ function viewModel(){
         return htmlContent;
     }
 }
+
+
+
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
+
+@Component(service = { Servlet.class })
+@SlingServletResourceTypes(
+    methods = { HttpConstants.METHOD_GET },
+    resourceTypes = { "your/resource/type" },
+    selectors = { "img" },
+    extensions = { "jpg", "jpeg", "png", "gif" }
+)
+public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
+
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdaptiveImageServlet.class);
+
+    /**
+     * Handles GET requests, finds the most suitable rendition of the requested asset 
+     * using Asset Microservices, and streams it back to the client. 
+     * If no specific rendition is available, it serves the original rendition.
+     */
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws ServletException, IOException {
+        String[] selectors = request.getRequestPathInfo().getSelectors();
+        String widthSelector = selectors.length > 1 ? selectors[1] : null;
+        int requestedWidth = widthSelector != null ? parseWidth(widthSelector) : 0;
+
+        // Retrieve the asset and the closest rendition
+        Resource imageResource = request.getResource();
+        Asset asset = imageResource.adaptTo(Asset.class);
+
+        if (asset == null) {
+            LOGGER.error("No asset found at path: {}", imageResource.getPath());
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Asset not found.");
+            return;
+        }
+
+        Rendition bestRendition = getBestRendition(asset, requestedWidth);
+
+        if (bestRendition != null) {
+            // Stream the rendition back to the client
+            streamRendition(response, bestRendition);
+        } else {
+            LOGGER.warn("No suitable rendition found for width: {}px. Serving original.", requestedWidth);
+            response.sendRedirect(request.getResourceResolver().map(asset.getPath() + "/jcr:content/renditions/original"));
+        }
+    }
+
+    /**
+     * Parses the width selector to an integer. Logs a warning and returns 0 if parsing fails.
+     *
+     * @param widthSelector the width selector from the request
+     * @return the parsed width, or 0 if invalid
+     */
+    private int parseWidth(String widthSelector) {
+        try {
+            return Integer.parseInt(widthSelector);
+        } catch (NumberFormatException e) {
+            LOGGER.warn("Invalid width selector '{}', defaulting to original size.", widthSelector);
+            return 0;
+        }
+    }
+
+    /**
+     * Finds the best available rendition based on the requested width.
+     * Asset Microservices create renditions with names like "cq5dam.thumbnail.<width>.jpg".
+     *
+     * @param asset the DAM asset for which to find a rendition
+     * @param requestedWidth the width requested in the selector
+     * @return the closest rendition matching the requested width or the original rendition if no match
+     */
+    private Rendition getBestRendition(Asset asset, int requestedWidth) {
+        if (requestedWidth <= 0) {
+            return asset.getOriginal(); // No specific width requested, serve original.
+        }
+
+        Rendition closestRendition = null;
+        int closestWidthDifference = Integer.MAX_VALUE;
+
+        for (Rendition rendition : asset.getRenditions()) {
+            String renditionName = rendition.getName();
+            if (renditionName.startsWith("cq5dam.thumbnail.")) {
+                int renditionWidth = parseRenditionWidth(renditionName);
+                int widthDifference = Math.abs(renditionWidth - requestedWidth);
+
+                // Find the rendition closest to the requested width
+                if (widthDifference < closestWidthDifference) {
+                    closestWidthDifference = widthDifference;
+                    closestRendition = rendition;
+                }
+            }
+        }
+
+        // Return the closest rendition, or null if no suitable rendition was found
+        return closestRendition != null ? closestRendition : asset.getOriginal();
+    }
+
+    /**
+     * Extracts the width from a rendition name, expecting names like "cq5dam.thumbnail.<width>.jpg".
+     *
+     * @param renditionName the name of the rendition
+     * @return the width parsed from the rendition name, or Integer.MAX_VALUE if parsing fails
+     */
+    private int parseRenditionWidth(String renditionName) {
+        try {
+            String widthPart = renditionName.split("\\.")[2];
+            return Integer.parseInt(widthPart);
+        } catch (Exception e) {
+            LOGGER.warn("Could not parse width from rendition name: {}", renditionName);
+            return Integer.MAX_VALUE; // Invalid width, ignore this rendition in selection.
+        }
+    }
+
+    /**
+     * Streams the specified rendition to the response output stream.
+     *
+     * @param response the servlet response
+     * @param rendition the rendition to stream
+     * @throws IOException if an error occurs during streaming
+     */
+    private void streamRendition(SlingHttpServletResponse response, Rendition rendition) throws IOException {
+        response.setContentType(rendition.getMimeType());
+        try (InputStream is = rendition.getStream()) {
+            if (is != null) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    response.getOutputStream().write(buffer, 0, bytesRead);
+                }
+            } else {
+                LOGGER.error("Unable to obtain input stream for rendition: {}", rendition.getPath());
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to stream rendition.");
+            }
+        }
+    }
+}
+

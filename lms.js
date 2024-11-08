@@ -3416,3 +3416,183 @@ public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
 }
 
 
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
+
+@Component(service = { Servlet.class })
+@SlingServletResourceTypes(
+    methods = { HttpConstants.METHOD_GET },
+    resourceTypes = { "your/resource/type" },
+    selectors = { "img" },
+    extensions = { "jpg", "jpeg", "png", "gif" }
+)
+public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
+
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdaptiveImageServlet.class);
+
+    /**
+     * Handles GET requests, finds the best rendition of the requested asset,
+     * and streams it back to the client with caching and quality control.
+     */
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws ServletException, IOException {
+        String[] selectors = request.getRequestPathInfo().getSelectors();
+        String widthSelector = selectors.length > 1 ? selectors[1] : null;
+        int requestedWidth = widthSelector != null ? parseWidth(widthSelector) : 0;
+
+        // Retrieve the asset from the resource using helper method
+        Resource imageResource = request.getResource();
+        Asset asset = getAssetFromResource(imageResource, request.getResourceResolver());
+
+        if (asset == null) {
+            LOGGER.error("No asset found at path: {}", imageResource.getPath());
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Asset not found.");
+            return;
+        }
+
+        // Add caching headers to improve load times
+        addCacheHeaders(response, asset);
+
+        // Find the best rendition for the requested width
+        Rendition bestRendition = getBestRendition(asset, requestedWidth);
+
+        if (bestRendition != null) {
+            // Stream the rendition back to the client with optimized streaming
+            streamRendition(response, bestRendition);
+        } else {
+            LOGGER.warn("No suitable rendition found for width: {}px. Serving original.", requestedWidth);
+            response.sendRedirect(request.getResourceResolver().map(asset.getPath() + "/jcr:content/renditions/original"));
+        }
+    }
+
+    /**
+     * Helper method to retrieve an Asset from the given resource by checking the fileReference property.
+     */
+    private Asset getAssetFromResource(Resource resource, ResourceResolver resourceResolver) {
+        String fileReference = resource.getValueMap().get("fileReference", String.class);
+        if (fileReference != null) {
+            Resource assetResource = resourceResolver.getResource(fileReference);
+            if (assetResource != null) {
+                return assetResource.adaptTo(Asset.class);
+            } else {
+                LOGGER.warn("Referenced asset not found at path: {}", fileReference);
+            }
+        } else {
+            LOGGER.warn("No fileReference property found in resource at path: {}", resource.getPath());
+        }
+        return null;
+    }
+
+    /**
+     * Adds caching headers based on asset's last modified date to improve performance.
+     */
+    private void addCacheHeaders(SlingHttpServletResponse response, Asset asset) {
+        long lastModified = asset.getLastModified();
+        response.setDateHeader("Last-Modified", lastModified);
+        response.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 1 day
+
+        // Check for If-Modified-Since header to send 304 if the asset is not modified
+        long ifModifiedSince = response.getDateHeader("If-Modified-Since");
+        if (ifModifiedSince != -1 && lastModified <= ifModifiedSince) {
+            response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+        }
+    }
+
+    /**
+     * Parses the width selector to an integer. Logs a warning and returns 0 if parsing fails.
+     */
+    private int parseWidth(String widthSelector) {
+        try {
+            return Integer.parseInt(widthSelector);
+        } catch (NumberFormatException e) {
+            LOGGER.warn("Invalid width selector '{}', defaulting to original size.", widthSelector);
+            return 0;
+        }
+    }
+
+    /**
+     * Finds the best available rendition based on the requested width.
+     */
+    private Rendition getBestRendition(Asset asset, int requestedWidth) {
+        if (requestedWidth <= 0) {
+            return asset.getOriginal(); // No specific width requested, serve original.
+        }
+
+        Rendition closestRendition = null;
+        int closestWidthDifference = Integer.MAX_VALUE;
+
+        for (Rendition rendition : asset.getRenditions()) {
+            String renditionName = rendition.getName();
+            if (renditionName.startsWith("cq5dam.thumbnail.")) {
+                int renditionWidth = parseRenditionWidth(renditionName);
+                int widthDifference = Math.abs(renditionWidth - requestedWidth);
+
+                // Only consider renditions with equal or greater width to avoid quality loss
+                if (renditionWidth >= requestedWidth && widthDifference < closestWidthDifference) {
+                    closestWidthDifference = widthDifference;
+                    closestRendition = rendition;
+                }
+            }
+        }
+
+        return closestRendition != null ? closestRendition : asset.getOriginal();
+    }
+
+    /**
+     * Extracts the width from a rendition name.
+     */
+    private int parseRenditionWidth(String renditionName) {
+        try {
+            String widthPart = renditionName.split("\\.")[2];
+            return Integer.parseInt(widthPart);
+        } catch (Exception e) {
+            LOGGER.warn("Could not parse width from rendition name: {}", renditionName);
+            return Integer.MAX_VALUE; // Invalid width, ignore this rendition in selection.
+        }
+    }
+
+    /**
+     * Streams the specified rendition to the response output stream with improved buffering.
+     */
+    private void streamRendition(SlingHttpServletResponse response, Rendition rendition) throws IOException {
+        response.setContentType(rendition.getMimeType());
+        response.setHeader("Content-Disposition", "inline");
+
+        try (InputStream is = rendition.getStream()) {
+            if (is != null) {
+                byte[] buffer = new byte[8192]; // Larger buffer for more efficient streaming
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    response.getOutputStream().write(buffer, 0, bytesRead);
+                }
+                response.flushBuffer(); // Ensure all data is sent
+            } else {
+                LOGGER.error("Unable to obtain input stream for rendition: {}", rendition.getPath());
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to stream rendition.");
+            }
+        }
+    }
+}
+
+

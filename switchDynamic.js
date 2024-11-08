@@ -183,3 +183,190 @@ public static String getHtmlContent(HttpServletRequest httpRequest, ResourceReso
     return htmlContent;
 }
 
+optimized code
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
+import com.day.cq.wcm.api.policies.ContentPolicy;
+import com.day.cq.wcm.api.policies.ContentPolicyManager;
+import com.day.image.Layer;
+
+@Component(service = { Servlet.class })
+@SlingServletResourceTypes(
+        methods = { HttpConstants.METHOD_GET },
+        resourceTypes = { "your/resource/type" },
+        selectors = { "img" },
+        extensions = { "jpg", "jpeg", "png", "gif" }
+)
+public class OptimizedAdaptiveImageServlet extends SlingSafeMethodsServlet {
+
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = LoggerFactory.getLogger(OptimizedAdaptiveImageServlet.class);
+    private static final String DEFAULT_MIME_TYPE = "image/jpeg";
+    private static final int CACHE_MAX_AGE = 86400; // Cache for 1 day
+
+    @Reference
+    private transient AdaptiveImageService adaptiveImageService;
+
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws ServletException, IOException {
+        String[] selectors = request.getRequestPathInfo().getSelectors();
+        
+        if (selectors.length != 1 && selectors.length != 2) {
+            LOGGER.error("Invalid selector count: {}. Expected 1 or 2.", Arrays.toString(selectors));
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        
+        int requestedWidth = selectors.length == 2 ? parseWidth(selectors[1]) : adaptiveImageService.getImageRendition();
+
+        Resource imageResource = request.getResource();
+        Asset asset = getAssetFromResource(imageResource, request.getResourceResolver());
+        
+        if (asset == null) {
+            LOGGER.error("No asset found at path: {}", imageResource.getPath());
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Asset not found.");
+            return;
+        }
+
+        if (handleIfModifiedSinceHeader(request, response, asset)) {
+            return;
+        }
+
+        List<Integer> allowedWidths = getAllowedWidths(request);
+        requestedWidth = closestAllowedWidth(requestedWidth, allowedWidths);
+        Rendition bestRendition = getBestRendition(asset, requestedWidth);
+
+        if (bestRendition != null) {
+            streamRendition(response, bestRendition);
+        } else {
+            LOGGER.warn("No suitable rendition found for width: {}px. Serving original rendition.", requestedWidth);
+            response.sendRedirect(request.getResourceResolver().map(asset.getPath() + "/jcr:content/renditions/original"));
+        }
+    }
+
+    /**
+     * Retrieves the Asset from the DAM, following Adobe’s best practice of using high-level APIs.
+     */
+    private Asset getAssetFromResource(Resource resource, ResourceResolver resolver) {
+        String fileReference = resource.getValueMap().get("fileReference", String.class);
+        if (fileReference != null) {
+            Resource assetResource = resolver.getResource(fileReference);
+            if (assetResource != null) {
+                return assetResource.adaptTo(Asset.class);
+            } else {
+                LOGGER.warn("Referenced asset not accessible at path: {}", fileReference);
+            }
+        } else {
+            LOGGER.warn("No fileReference property found in resource at path: {}", resource.getPath());
+        }
+        return null;
+    }
+
+    /**
+     * Retrieves allowed widths from the content policy, ensuring adherence to configuration.
+     */
+    private List<Integer> getAllowedWidths(SlingHttpServletRequest request) {
+        ContentPolicyManager policyManager = request.getResourceResolver().adaptTo(ContentPolicyManager.class);
+        if (policyManager != null) {
+            ContentPolicy policy = policyManager.getPolicy(request.getResource());
+            if (policy != null) {
+                return Arrays.asList(policy.getProperties().get("allowedWidths", new Integer[] {128, 256, 512, 1024}));
+            }
+        }
+        LOGGER.info("No content policy defined; using default allowed widths.");
+        return Arrays.asList(128, 256, 512, 1024);
+    }
+
+    /**
+     * Finds the closest allowed width based on the requested width, improving rendering performance.
+     */
+    private int closestAllowedWidth(int requestedWidth, List<Integer> allowedWidths) {
+        int closest = allowedWidths.get(0);
+        for (int width : allowedWidths) {
+            if (Math.abs(width - requestedWidth) < Math.abs(closest - requestedWidth)) {
+                closest = width;
+            }
+        }
+        return closest;
+    }
+
+    /**
+     * Sets caching headers and responds with a 304 if the asset hasn’t been modified since the client’s last request.
+     */
+    private boolean handleIfModifiedSinceHeader(SlingHttpServletRequest request, SlingHttpServletResponse response, Asset asset) {
+        long lastModified = asset.getLastModified();
+        response.setDateHeader("Last-Modified", lastModified);
+        response.setHeader("Cache-Control", "public, max-age=" + CACHE_MAX_AGE);
+
+        long ifModifiedSince = request.getDateHeader("If-Modified-Since");
+        if (ifModifiedSince != -1 && lastModified <= ifModifiedSince) {
+            response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Selects the best matching rendition for the requested width, optimizing for pre-generated renditions.
+     */
+    private Rendition getBestRendition(Asset asset, int requestedWidth) {
+        for (Rendition rendition : asset.getRenditions()) {
+            if (rendition.getName().contains("cq5dam.thumbnail." + requestedWidth)) {
+                return rendition;
+            }
+        }
+        return asset.getOriginal();
+    }
+
+    /**
+     * Parses the width selector to an integer, defaulting to 0 on failure.
+     */
+    private int parseWidth(String widthSelector) {
+        try {
+            return Integer.parseInt(widthSelector);
+        } catch (NumberFormatException e) {
+            LOGGER.warn("Invalid width selector '{}', using default width.", widthSelector);
+            return 0;
+        }
+    }
+
+    /**
+     * Streams the specified rendition directly to the response, using a try-with-resources block.
+     */
+    private void streamRendition(SlingHttpServletResponse response, Rendition rendition) throws IOException {
+        response.setContentType(rendition.getMimeType());
+        try (InputStream is = rendition.getStream()) {
+            IOUtils.copy(is, response.getOutputStream());
+        } catch (Exception e) {
+            LOGGER.error("Error streaming rendition: {}", rendition.getPath(), e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error streaming rendition.");
+        }
+    }
+}
+
+

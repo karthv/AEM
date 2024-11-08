@@ -3281,9 +3281,9 @@ public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
         String widthSelector = selectors.length > 1 ? selectors[1] : null;
         int requestedWidth = widthSelector != null ? parseWidth(widthSelector) : 0;
 
-        // Retrieve the asset and the closest rendition
+        // Retrieve the asset from the resource using helper method
         Resource imageResource = request.getResource();
-        Asset asset = imageResource.adaptTo(Asset.class);
+        Asset asset = getAssetFromResource(imageResource, request.getResourceResolver());
 
         if (asset == null) {
             LOGGER.error("No asset found at path: {}", imageResource.getPath());
@@ -3291,6 +3291,7 @@ public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
             return;
         }
 
+        // Find the best rendition for the requested width
         Rendition bestRendition = getBestRendition(asset, requestedWidth);
 
         if (bestRendition != null) {
@@ -3300,6 +3301,29 @@ public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
             LOGGER.warn("No suitable rendition found for width: {}px. Serving original.", requestedWidth);
             response.sendRedirect(request.getResourceResolver().map(asset.getPath() + "/jcr:content/renditions/original"));
         }
+    }
+
+    /**
+     * Helper method to retrieve an Asset from the given resource by checking the fileReference property.
+     *
+     * @param resource the resource from which to retrieve the asset
+     * @param resourceResolver the resource resolver used for adapting
+     * @return the Asset object if found, or null if no asset is available
+     */
+    private Asset getAssetFromResource(Resource resource, ResourceResolver resourceResolver) {
+        // Check if the resource has a `fileReference` property pointing to a DAM asset
+        String fileReference = resource.getValueMap().get("fileReference", String.class);
+        if (fileReference != null) {
+            Resource assetResource = resourceResolver.getResource(fileReference);
+            if (assetResource != null) {
+                return assetResource.adaptTo(Asset.class);
+            } else {
+                LOGGER.warn("Referenced asset not found at path: {}", fileReference);
+            }
+        } else {
+            LOGGER.warn("No fileReference property found in resource at path: {}", resource.getPath());
+        }
+        return null; // Return null if the asset is not found
     }
 
     /**
@@ -3390,4 +3414,5 @@ public class AdaptiveImageServlet extends SlingSafeMethodsServlet {
         }
     }
 }
+
 

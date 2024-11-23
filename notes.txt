@@ -116,7 +116,7 @@ public class ServletUtil {
     private static final String PROP_CONF_DOMAIN = "domain";
     private static final String CONTENT_NODE = "/content";
 
-    // Store StandardCharsets.UTF_8.name() in a constant
+    // Store StandardCharsets.UTF_8.name() in a constant for performance
     private static final String UTF_8_STRING = StandardCharsets.UTF_8.name();
 
     // Method 1: Get HTML Content
@@ -205,7 +205,7 @@ public class ServletUtil {
                 String imgPath = URLDecoder.decode(videoElement.attr("data-video-narrow"), UTF_8_STRING);
                 String lastPath = StringUtils.substringBeforeLast(imgPath, "/");
                 Element imgElement = videoElement.appendElement("img");
-                imgElement.attr("src", lastPath + "/resolved-image.jpg"); // Example resolution
+                imgElement.attr("src", lastPath + "/resolved-image.jpg");
                 imgElement.attr("style", "width:100%; height:auto;");
             } catch (UnsupportedEncodingException e) {
                 LOG.error("Error decoding video path: {}", e.getMessage(), e);
@@ -252,6 +252,60 @@ public class ServletUtil {
         for (Element img : images) {
             try {
                 String imgSrc = URLDecoder.decode(img.attr("src"), UTF_8_STRING);
-                if (imgSrc.startsWith("/content
+                if (imgSrc.startsWith("/content")) {
+                    img.attr("src", "/media/" + StringUtils.substringAfterLast(imgSrc, "/"));
+                    img.attr("style", "max-width:100%; height:auto;");
+                }
+            } catch (UnsupportedEncodingException e) {
+                LOG.error("Error decoding image path: {}", e.getMessage(), e);
+            }
+        }
+    }
+
+    // Method 6: Add Anchor Link Style
+    private static void addAnchorLinkStyle(Document document, SlingHttpServletRequest request) {
+        String domainName = getDomain(request);
+        document.select("a[href]").forEach(link -> {
+            try {
+                String href = URLDecoder.decode(link.attr("href"), UTF_8_STRING); // Use the constant
+                if (domainName != null && href.startsWith(CONTENT_NODE)) {
+                    link.attr("href", domainName + href);
+                }
+            } catch (UnsupportedEncodingException e) {
+                LOG.error("Error decoding URL '{}': {}", link.attr("href"), e.getMessage(), e);
+            }
+        });
+    }
+
+    // Method 7: Get Domain
+    public static String getDomain(SlingHttpServletRequest request) {
+        Resource resource = request.getResource();
+        ValueMap properties = resource.adaptTo(ValueMap.class);
+        String domain = properties.get(PROP_CONF_DOMAIN, "");
+        if (StringUtils.isBlank(domain)) {
+            String pageURL = request.getRequestURL().toString();
+            domain = StringUtils.substringBefore(pageURL, CONTENT_NODE);
+        }
+        return domain;
+    }
+
+    // Method 8: Copy Media Stream
+    public static void copyMediaStream(ZipOutputStream zipOutputStream, String childNodeUrl, List<String> assets,
+                                       Asset asset) throws IOException {
+        try (InputStream mediaInputStream = asset.getOriginal().getStream()) {
+            zipOutputStream.putNextEntry(new ZipEntry(childNodeUrl + asset.getName()));
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = mediaInputStream.read(buffer)) > 0) {
+                zipOutputStream.write(buffer, 0, length);
+            }
+            assets.add(asset.getName());
+        } catch (IOException e) {
+            LOG.error("Error creating folders inside zip '{}': {}", e.getMessage(), e);
+        } finally {
+            zipOutputStream.closeEntry();
+        }
+    }
+}
 
 

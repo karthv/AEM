@@ -195,52 +195,63 @@ public class ServletUtil {
 
     // Method 5: Clean Document
     private static void cleanDocument(Document document) {
+        // Remove unwanted classes or components
         document.select("div.unwanted-class, video.movie__loop").forEach(Element::remove);
-    }
 
-    // Method 6: Add Anchor Link Style
-    private static void addAnchorLinkStyle(Document document, SlingHttpServletRequest request) {
-        String domainName = getDomain(request);
-        document.select("a[href]").forEach(link -> {
+        // Handle video component references
+        Elements videoLinks = document.select("[data-video-narrow]");
+        for (Element videoElement : videoLinks) {
             try {
-                String href = URLDecoder.decode(link.attr("href"), UTF_8_STRING); // Use the constant
-                if (domainName != null && href.startsWith(CONTENT_NODE)) {
-                    link.attr("href", domainName + href);
-                }
+                String imgPath = URLDecoder.decode(videoElement.attr("data-video-narrow"), UTF_8_STRING);
+                String lastPath = StringUtils.substringBeforeLast(imgPath, "/");
+                Element imgElement = videoElement.appendElement("img");
+                imgElement.attr("src", lastPath + "/resolved-image.jpg"); // Example resolution
+                imgElement.attr("style", "width:100%; height:auto;");
             } catch (UnsupportedEncodingException e) {
-                LOG.error("Error decoding URL '{}': {}", link.attr("href"), e.getMessage(), e);
+                LOG.error("Error decoding video path: {}", e.getMessage(), e);
             }
-        });
-    }
-
-    // Method 7: Get Domain
-    public static String getDomain(SlingHttpServletRequest request) {
-        Resource resource = request.getResource();
-        ValueMap properties = resource.adaptTo(ValueMap.class);
-        String domain = properties.get(PROP_CONF_DOMAIN, "");
-        if (StringUtils.isBlank(domain)) {
-            String pageURL = request.getRequestURL().toString();
-            domain = StringUtils.substringBefore(pageURL, CONTENT_NODE);
         }
-        return domain;
-    }
 
-    // Method 8: Copy Media Stream
-    public static void copyMediaStream(ZipOutputStream zipOutputStream, String childNodeUrl, List<String> assets,
-                                       Asset asset) throws IOException {
-        try (InputStream mediaInputStream = asset.getOriginal().getStream()) {
-            zipOutputStream.putNextEntry(new ZipEntry(childNodeUrl + asset.getName()));
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = mediaInputStream.read(buffer)) > 0) {
-                zipOutputStream.write(buffer, 0, length);
+        // Handle movie component references
+        Elements movieElements = document.select("div.movie-component");
+        for (Element movieElement : movieElements) {
+            Element videoTag = movieElement.selectFirst("video");
+            if (videoTag != null) {
+                Element sourceTag = videoTag.selectFirst("source");
+                if (sourceTag != null) {
+                    try {
+                        String src = URLDecoder.decode(sourceTag.attr("src"), UTF_8_STRING);
+                        sourceTag.attr("src", "/media/" + StringUtils.substringAfterLast(src, "/"));
+                    } catch (UnsupportedEncodingException e) {
+                        LOG.error("Error decoding movie path: {}", e.getMessage(), e);
+                    }
+                }
             }
-            assets.add(asset.getName());
-        } catch (IOException e) {
-            LOG.error("Error creating folders inside zip '{}': {}", e.getMessage(), e);
-        } finally {
-            zipOutputStream.closeEntry();
         }
-    }
-}
+
+        // Handle accordion components
+        Elements accordionElements = document.select("div.accordion");
+        for (Element accordion : accordionElements) {
+            Elements items = accordion.select("div.item");
+            for (Element item : items) {
+                Elements images = item.select("img");
+                for (Element img : images) {
+                    try {
+                        String imgSrc = URLDecoder.decode(img.attr("src"), UTF_8_STRING);
+                        img.attr("src", "/accordion/media/" + StringUtils.substringAfterLast(imgSrc, "/"));
+                        img.attr("style", "width:auto; height:auto;");
+                    } catch (UnsupportedEncodingException e) {
+                        LOG.error("Error decoding accordion image path: {}", e.getMessage(), e);
+                    }
+                }
+            }
+        }
+
+        // Handle image styling
+        Elements images = document.select("img");
+        for (Element img : images) {
+            try {
+                String imgSrc = URLDecoder.decode(img.attr("src"), UTF_8_STRING);
+                if (imgSrc.startsWith("/content
+
 

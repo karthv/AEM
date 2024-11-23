@@ -78,3 +78,169 @@ Or check them directly in the AEM environment by navigating to the logs director
 bash
 Copy code
 /crx-quickstart/logs/
+
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xhtmlrenderer.pdf.ITextRenderer;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponseWrapper;
+import java.io.*;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+public class ServletUtil {
+
+    private ServletUtil() {
+        throw new IllegalStateException("Utility class");
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(ServletUtil.class);
+    private static final String PROP_CONF_DOMAIN = "domain";
+    private static final String CONTENT_NODE = "/content";
+
+    // Store StandardCharsets.UTF_8.name() in a constant
+    private static final String UTF_8_STRING = StandardCharsets.UTF_8.name();
+
+    // Method 1: Get HTML Content
+    public static String getHtmlContent(HttpServletRequest request, HttpServletResponse response, String url) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
+
+            RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+            if (dispatcher == null) {
+                LOG.error("Dispatcher for URL '{}' is null", url);
+                return null;
+            }
+
+            HttpServletResponse capturingResponse = new HttpServletResponseWrapper(response) {
+                @Override
+                public PrintWriter getWriter() {
+                    return writer;
+                }
+            };
+
+            dispatcher.include(request, capturingResponse);
+            writer.flush();
+
+            return outputStream.toString(UTF_8_STRING); // Use the constant
+        } catch (IOException | ServletException e) {
+            LOG.error("Error while generating HTML content from URL '{}': {}", url, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // Method 2: Output PDF
+    public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request,
+                                        ResourceResolver resourceResolver, File outputFile, String[] pageAttributes) throws IOException {
+        try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+            ITextRenderer renderer = new ITextRenderer();
+            Document document = addDocumentStyle(htmlString, pageAttributes);
+            addAnchorLinkStyle(document, request);
+            cleanDocument(document);
+
+            renderer.setDocument(new org.jsoup.helper.W3CDom().fromJsoup(document), null);
+            renderer.layout();
+            renderer.createPDF(fileOutputStream);
+
+            return new FileInputStream(outputFile);
+        } catch (Exception e) {
+            LOG.error("Error generating PDF content: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // Method 3: Convert HTML to File
+    public static InputStream convertHtmlToFile(String htmlOfPage, SlingHttpServletRequest request,
+                                                ResourceResolver resolver, String[] pageAttributes) {
+        try {
+            Document document = addDocumentStyle(htmlOfPage, pageAttributes);
+            cleanDocument(document);
+            addAnchorLinkStyle(document, request);
+
+            byte[] htmlBytes = document.html().getBytes(UTF_8_STRING); // Use the constant
+            return new ByteArrayInputStream(htmlBytes);
+        } catch (Exception e) {
+            LOG.error("Error converting HTML to file: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // Method 4: Add Document Style
+    private static Document addDocumentStyle(String htmlOfPage, String[] pageAttributes) {
+        Document document = Jsoup.parse(htmlOfPage, UTF_8_STRING); // Use the constant
+        for (String tag : pageAttributes) {
+            document.select(tag).forEach(Element::remove);
+        }
+        document.select("body").attr("style", "font-family: Arial, sans-serif; font-size: 14px;");
+        return document;
+    }
+
+    // Method 5: Clean Document
+    private static void cleanDocument(Document document) {
+        document.select("div.unwanted-class, video.movie__loop").forEach(Element::remove);
+    }
+
+    // Method 6: Add Anchor Link Style
+    private static void addAnchorLinkStyle(Document document, SlingHttpServletRequest request) {
+        String domainName = getDomain(request);
+        document.select("a[href]").forEach(link -> {
+            try {
+                String href = URLDecoder.decode(link.attr("href"), UTF_8_STRING); // Use the constant
+                if (domainName != null && href.startsWith(CONTENT_NODE)) {
+                    link.attr("href", domainName + href);
+                }
+            } catch (UnsupportedEncodingException e) {
+                LOG.error("Error decoding URL '{}': {}", link.attr("href"), e.getMessage(), e);
+            }
+        });
+    }
+
+    // Method 7: Get Domain
+    public static String getDomain(SlingHttpServletRequest request) {
+        Resource resource = request.getResource();
+        ValueMap properties = resource.adaptTo(ValueMap.class);
+        String domain = properties.get(PROP_CONF_DOMAIN, "");
+        if (StringUtils.isBlank(domain)) {
+            String pageURL = request.getRequestURL().toString();
+            domain = StringUtils.substringBefore(pageURL, CONTENT_NODE);
+        }
+        return domain;
+    }
+
+    // Method 8: Copy Media Stream
+    public static void copyMediaStream(ZipOutputStream zipOutputStream, String childNodeUrl, List<String> assets,
+                                       Asset asset) throws IOException {
+        try (InputStream mediaInputStream = asset.getOriginal().getStream()) {
+            zipOutputStream.putNextEntry(new ZipEntry(childNodeUrl + asset.getName()));
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = mediaInputStream.read(buffer)) > 0) {
+                zipOutputStream.write(buffer, 0, length);
+            }
+            assets.add(asset.getName());
+        } catch (IOException e) {
+            LOG.error("Error creating folders inside zip '{}': {}", e.getMessage(), e);
+        } finally {
+            zipOutputStream.closeEntry();
+        }
+    }
+}
+

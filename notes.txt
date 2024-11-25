@@ -330,6 +330,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -339,12 +340,30 @@ public class ServletUtil {
         throw new IllegalStateException("Utility class");
     }
 
+    // Logger
     private static final Logger LOG = LoggerFactory.getLogger(ServletUtil.class);
+
+    // Constants from the original code
     private static final String PROP_CONF_DOMAIN = "domain";
     private static final String CONTENT_NODE = "/content";
-
-    // Store StandardCharsets.UTF_8.name() in a constant for performance
-    private static final String UTF_8_STRING = StandardCharsets.UTF_8.name();
+    private static final String UTF_8 = "UTF-8";
+    private static final String FORWARD_SLASH = "/";
+    private static final String IMG = "img";
+    private static final String SRC = "src";
+    private static final String STYLE = "style";
+    private static final String IMG_STYLE_VALUE = "max-width:100%; height:auto;";
+    private static final String DATA_VIDEO_NARROW = "data-video-narrow";
+    private static final String FILE_REFERENCE = "fileReference";
+    private static final String TEASER_IMG = "thumbnail";
+    private static final String MOVIE_VIDEO = "video";
+    private static final String SOURCE_SRC = "source";
+    private static final String DIV = "div";
+    private static final String ACOORDION_DIV_CLASS = "div.accordion";
+    private static final String ACOORDION_DIV_ITEM_CLASS = "div.item";
+    private static final String ACCORDION_HEADING_CLASS = "h3";
+    private static final String ANCHOR_HREF = "a[href]";
+    private static final String VIDEO_SRC = "video";
+    private static final String NO_SCRIPT = "noscript";
 
     // Method 1: Get HTML Content
     public static String getHtmlContent(HttpServletRequest request, HttpServletResponse response, String url) {
@@ -367,82 +386,111 @@ public class ServletUtil {
             dispatcher.include(request, capturingResponse);
             writer.flush();
 
-            return outputStream.toString(UTF_8_STRING);
+            return outputStream.toString(StandardCharsets.UTF_8.name());
         } catch (IOException | ServletException e) {
             LOG.error("Error while generating HTML content from URL '{}': {}", url, e.getMessage(), e);
             return null;
         }
     }
 
-    // Method 2: Output PDF
+    // Method 2: Output PDF (Preserved from Original Code)
     public static InputStream outputPDF(String htmlString, SlingHttpServletRequest request,
                                         ResourceResolver resourceResolver, File outputFile, String[] pageAttributes) throws IOException {
+        org.w3c.dom.Document pdfDocument = null;
+        InputStream pdfInput = null;
         try (OutputStream fileOutputStream = new FileOutputStream(outputFile)) {
             ITextRenderer renderer = new ITextRenderer();
 
-            // Parse and process the HTML document
+            // Load HTML file
             Document document = addDocumentStyle(htmlString, pageAttributes);
             addAnchorLinkStyle(document, request);
-            addImageStyle(resourceResolver, document);
+            String[] removeAttribute = {"div.image-wide", "video.movie__loop"};
 
-            // Convert Jsoup Document to W3C DOM for PDF rendering
-            org.w3c.dom.Document pdfDocument = new org.jsoup.helper.W3CDom().fromJsoup(document);
+            for (String attr : removeAttribute) {
+                for (Element removeElement : document.select(attr)) {
+                    removeElement.remove();
+                }
+            }
 
+            Elements coeElements = document.select("div[class^='coe-']");
+            coeElements.removeAll(document.select("div.coe-image"));
+
+            pdfDocument = new org.jsoup.helper.W3CDom().fromJsoup(document);
             renderer.setDocument(pdfDocument, null);
             renderer.layout();
-
-            // Generate the PDF
             renderer.createPDF(fileOutputStream);
+            renderer.finishPDF();
 
-            // Return PDF as InputStream
-            return new FileInputStream(outputFile);
+            pdfInput = new FileInputStream(outputFile);
         } catch (Exception e) {
-            LOG.error("Error generating PDF content: {}", e.getMessage(), e);
-            return null;
+            LOG.error("Could not generate PDF content: {}", e.getMessage());
         }
+        return pdfInput;
     }
 
-    // Method 3: Convert HTML to File
+    // Method 3: Convert HTML to File (Preserved from Original Code)
     public static InputStream convertHtmlToFile(String htmlOfPage, SlingHttpServletRequest request,
-                                                ResourceResolver resolver, String[] pageAttributes) {
+                                                ResourceResolver resolver, String[] pageAttributes) throws UnsupportedEncodingException {
+        InputStream targetStream = null;
         try {
             Document document = addDocumentStyle(htmlOfPage, pageAttributes);
-            updateVideoComponentReferences(resolver, document);
+            Elements accoelements = document.select(ACOORDION_DIV_CLASS);
+            extractAccordionFromHTML(resolver, accoelements);
+
+            // Update for Movie Component
             updateMovieComponentReferences(document);
 
-            byte[] htmlBytes = document.html().getBytes(UTF_8_STRING);
-            return new ByteArrayInputStream(htmlBytes);
-        } catch (Exception e) {
-            LOG.error("Error converting HTML to file: {}", e.getMessage(), e);
-            return null;
+            // Update for Video Component
+            updateVideoComponentReferences(resolver, document);
+
+            // Update Image styling
+            addImageStyle(resolver, document);
+
+            // Anchor styling
+            addAnchorLinkStyle(document, request);
+
+            Elements elements = document.select(NO_SCRIPT);
+            elements.tagName(DIV);
+
+            document.outputSettings().syntax(Document.OutputSettings.Syntax.html);
+            targetStream = new ByteArrayInputStream(document.html().getBytes(StandardCharsets.UTF_8));
+        } finally {
+            if (targetStream != null) {
+                try {
+                    targetStream.close();
+                } catch (IOException e) {
+                    LOG.error("Error closing target stream: {}", e.getMessage());
+                }
+            }
         }
+        return targetStream;
     }
 
     // Method 4: Add Document Style
     private static Document addDocumentStyle(String htmlOfPage, String[] pageAttributes) {
-        Document document = Jsoup.parse(htmlOfPage, UTF_8_STRING);
+        Document document = Jsoup.parse(htmlOfPage, StandardCharsets.UTF_8.name());
         for (String tag : pageAttributes) {
             document.select(tag).forEach(Element::remove);
         }
-        document.select("body").attr("style", "font-family: Arial, sans-serif; font-size: 14px;");
+        document.select("body").attr(STYLE, "font-family: Arial, sans-serif; font-size: 14px;");
         return document;
     }
 
     // Method 5: Update Video Component References
     private static void updateVideoComponentReferences(ResourceResolver resolver, Document document) {
-        Elements videoElements = document.select("[data-video-narrow]");
+        Elements videoElements = document.select(VIDEO_SRC);
         for (Element videoElement : videoElements) {
             try {
-                String videoPath = URLDecoder.decode(videoElement.attr("data-video-narrow"), UTF_8_STRING);
-                String basePath = StringUtils.substringBeforeLast(videoPath, "/");
+                String videoPath = URLDecoder.decode(videoElement.attr(DATA_VIDEO_NARROW), UTF_8);
+                String basePath = StringUtils.substringBeforeLast(videoPath, FORWARD_SLASH);
                 Resource resource = resolver.getResource(basePath);
                 if (resource != null) {
                     for (Resource child : resource.getChildren()) {
-                        if ("thumbnail".equals(child.getName())) {
-                            String thumbnailPath = child.getValueMap().get("fileReference", "");
-                            videoElement.appendElement("img")
-                                    .attr("src", thumbnailPath)
-                                    .attr("style", "width:100%; height:auto;");
+                        if (TEASER_IMG.equals(child.getName())) {
+                            String thumbnailPath = child.getValueMap().get(FILE_REFERENCE, "");
+                            videoElement.appendElement(IMG)
+                                    .attr(SRC, thumbnailPath)
+                                    .attr(STYLE, IMG_STYLE_VALUE);
                         }
                     }
                 }
@@ -454,15 +502,15 @@ public class ServletUtil {
 
     // Method 6: Update Movie Component References
     private static void updateMovieComponentReferences(Document document) {
-        Elements movieElements = document.select("div.movie-component");
+        Elements movieElements = document.select(DIV + "[class^='movie-component']");
         for (Element movieElement : movieElements) {
-            Element videoTag = movieElement.selectFirst("video");
+            Element videoTag = movieElement.selectFirst(MOVIE_VIDEO);
             if (videoTag != null) {
-                Element sourceTag = videoTag.selectFirst("source");
+                Element sourceTag = videoTag.selectFirst(SOURCE_SRC);
                 if (sourceTag != null) {
                     try {
-                        String videoSrc = URLDecoder.decode(sourceTag.attr("src"), UTF_8_STRING);
-                        sourceTag.attr("src", "/media/" + StringUtils.substringAfterLast(videoSrc, "/"));
+                        String videoSrc = URLDecoder.decode(sourceTag.attr(SRC), UTF_8);
+                        sourceTag.attr(SRC, FORWARD_SLASH + "media" + FORWARD_SLASH + StringUtils.substringAfterLast(videoSrc, FORWARD_SLASH));
                     } catch (UnsupportedEncodingException e) {
                         LOG.error("Error updating movie component references: {}", e.getMessage(), e);
                     }
@@ -473,14 +521,14 @@ public class ServletUtil {
 
     // Method 7: Add Image Style
     private static void addImageStyle(ResourceResolver resolver, Document document) {
-        Elements imageElements = document.select("img");
+        Elements imageElements = document.select(IMG);
         for (Element img : imageElements) {
             try {
-                String imgSrc = URLDecoder.decode(img.attr("src"), UTF_8_STRING);
+                String imgSrc = URLDecoder.decode(img.attr(SRC), UTF_8);
                 Resource imageResource = resolver.getResource(imgSrc);
                 if (imageResource != null) {
-                    img.attr("src", "/media/" + StringUtils.substringAfterLast(imgSrc, "/"))
-                       .attr("style", "max-width:100%; height:auto;");
+                    img.attr(SRC, FORWARD_SLASH + "media" + FORWARD_SLASH + StringUtils.substringAfterLast(imgSrc, FORWARD_SLASH))
+                       .attr(STYLE, IMG_STYLE_VALUE);
                 }
             } catch (Exception e) {
                 LOG.error("Error adding image style: {}", e.getMessage(), e);
@@ -491,9 +539,9 @@ public class ServletUtil {
     // Method 8: Add Anchor Link Style
     private static void addAnchorLinkStyle(Document document, SlingHttpServletRequest request) {
         String domainName = getDomain(request);
-        document.select("a[href]").forEach(link -> {
+        document.select(ANCHOR_HREF).forEach(link -> {
             try {
-                String href = URLDecoder.decode(link.attr("href"), UTF_8_STRING);
+                String href = URLDecoder.decode(link.attr("href"), UTF_8);
                 if (domainName != null && href.startsWith(CONTENT_NODE)) {
                     link.attr("href", domainName + href);
                 }
@@ -503,7 +551,28 @@ public class ServletUtil {
         });
     }
 
-    // Method 9: Get Domain
+    // Method 9: Extract Accordion from HTML
+    private static void extractAccordionFromHTML(ResourceResolver resolver, Elements accoelements) {
+        int i = 1;
+        for (Element accolink : accoelements) {
+            Elements items = accolink.select(ACOORDION_DIV_ITEM_CLASS);
+            for (Element item : items) {
+                Elements images = item.select(IMG);
+                for (Element img : images) {
+                    try {
+                        String imgSrc = URLDecoder.decode(img.attr(SRC), UTF_8);
+                        img.attr(SRC, FORWARD_SLASH + "accordion" + FORWARD_SLASH + i + FORWARD_SLASH + StringUtils.substringAfterLast(imgSrc, FORWARD_SLASH))
+                           .attr(STYLE, IMG_STYLE_VALUE);
+                    } catch (Exception e) {
+                        LOG.error("Error extracting accordion image: {}", e.getMessage(), e);
+                    }
+                }
+            }
+            i++;
+        }
+    }
+
+    // Method 10: Get Domain
     public static String getDomain(SlingHttpServletRequest request) {
         Resource resource = request.getResource();
         ValueMap properties = resource.adaptTo(ValueMap.class);
@@ -514,25 +583,8 @@ public class ServletUtil {
         }
         return domain;
     }
-
-    // Method 10: Copy Media Stream
-    public static void copyMediaStream(ZipOutputStream zipOutputStream, String childNodeUrl, List<String> assets,
-                                       Asset asset) throws IOException {
-        try (InputStream mediaInputStream = asset.getOriginal().getStream()) {
-            zipOutputStream.putNextEntry(new ZipEntry(childNodeUrl + asset.getName()));
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = mediaInputStream.read(buffer)) > 0) {
-                zipOutputStream.write(buffer, 0, length);
-            }
-            assets.add(asset.getName());
-        } catch (IOException e) {
-            LOG.error("Error creating folders inside zip '{}': {}", e.getMessage(), e);
-        } finally {
-            zipOutputStream.closeEntry();
-        }
-    }
 }
+
 
 
 

@@ -647,4 +647,157 @@ public class ExecutionHandlerImpl implements RejectedExecutionHandler {
 }
 
 
+package com.example.core.jobs;
+
+import com.adobe.granite.asset.api.AssetManager;
+import com.adobe.granite.asset.api.Asset;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.event.jobs.JobConsumer;
+import org.apache.sling.event.jobs.Job;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+
+@Component(
+        service = JobConsumer.class,
+        property = {
+                JobConsumer.PROPERTY_TOPICS + "=com/example/jobs/move-assets"
+        }
+)
+public class MoveAssetsJob implements JobConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MoveAssetsJob.class);
+
+    private static final String SOURCE_PATH = "/content/dam/source-folder";
+    private static final String DESTINATION_PATH = "/content/dam/target-folder";
+
+    @Reference
+    private ResourceResolverFactory resourceResolverFactory;
+
+    @Override
+    public JobResult process(Job job) {
+        LOG.info("Starting asset move job...");
+
+        try (ResourceResolver resourceResolver = getServiceResourceResolver()) {
+            Resource sourceFolder = resourceResolver.getResource(SOURCE_PATH);
+            if (sourceFolder == null) {
+                LOG.error("Source folder not found at path: {}", SOURCE_PATH);
+                return JobResult.FAILED;
+            }
+
+            AssetManager assetManager = resourceResolver.adaptTo(AssetManager.class);
+            if (assetManager == null) {
+                LOG.error("Could not get AssetManager.");
+                return JobResult.FAILED;
+            }
+
+            for (Resource childResource : sourceFolder.getChildren()) {
+                processAsset(assetManager, childResource);
+            }
+
+            resourceResolver.commit();
+            LOG.info("Asset move job completed successfully.");
+            return JobResult.OK;
+
+        } catch (Exception e) {
+            LOG.error("Error while processing the Sling job", e);
+            return JobResult.FAILED;
+        }
+    }
+
+    private void processAsset(AssetManager assetManager, Resource childResource) {
+        try {
+            Asset asset = childResource.adaptTo(Asset.class);
+            if (asset == null) {
+                LOG.warn("Skipping non-asset resource at path: {}", childResource.getPath());
+                return;
+            }
+
+            String sourceAssetPath = asset.getPath();
+            String destinationAssetPath = DESTINATION_PATH + "/" + childResource.getName();
+
+            // Move the asset
+            Asset movedAsset = assetManager.moveAsset(sourceAssetPath, destinationAssetPath);
+            if (movedAsset == null) {
+                LOG.error("Failed to move asset from {} to {}", sourceAssetPath, destinationAssetPath);
+                return;
+            }
+
+            LOG.info("Asset moved successfully from {} to {}", sourceAssetPath, destinationAssetPath);
+
+        } catch (Exception e) {
+            LOG.error("Error while processing asset at path: {}", childResource.getPath(), e);
+        }
+    }
+
+    private ResourceResolver getServiceResourceResolver() throws Exception {
+        return resourceResolverFactory.getServiceResourceResolver(
+                Collections.singletonMap(ResourceResolverFactory.SUBSERVICE, "sling-job-service")
+        );
+    }
+}
+
+
+
+
+sc:
+
+package com.example.core.schedulers;
+
+import org.apache.sling.event.jobs.JobManager;
+import org.apache.sling.event.jobs.Job;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Component(service = Runnable.class, immediate = true)
+@Designate(ocd = MoveAssetsScheduler.Config.class)
+public class MoveAssetsScheduler implements Runnable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MoveAssetsScheduler.class);
+
+    @ObjectClassDefinition(name = "Move Assets Scheduler", description = "Scheduler for triggering asset moving job")
+    public @interface Config {
+        @AttributeDefinition(
+                name = "Scheduler Expression",
+                description = "Cron expression to define the schedule (e.g., '0 0/5 * * * ?' for every 5 minutes)"
+        )
+        String schedulerExpression() default "0 0 1 * * ?"; // Default: Run daily at 1 AM
+    }
+
+    @Reference
+    private JobManager jobManager;
+
+    private String schedulerExpression;
+
+    @Activate
+    @Modified
+    protected void activate(Config config) {
+        this.schedulerExpression = config.schedulerExpression();
+        LOG.info("Scheduler activated with expression: {}", this.schedulerExpression);
+    }
+
+    @Override
+    public void run() {
+        LOG.info("Triggering Move Assets Job from Scheduler...");
+        Map<String, Object> jobProperties = new HashMap<>();
+        jobManager.addJob("com/example/jobs/move-assets", jobProperties);
+        LOG.info("Move Assets Job added to queue.");
+    }
+}
+
 

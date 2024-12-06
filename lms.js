@@ -3998,5 +3998,46 @@ private boolean isCookieOverlayNotRequired(LanguageSite languageSite) {
     return result;
 }
 
+private boolean isDisableCookie(LanguageSite languageSite) {
+    // Debug: Log the start of the method
+    LOG.debug("Checking if cookie overlay is disabled.");
+
+    // Fetch global overlay setting from the language site
+    String globalOverlaySetting = null;
+    if (languageSite != null && languageSite.getPage() != null && languageSite.getPage().getContentResource() != null) {
+        globalOverlaySetting = languageSite.getPage().getContentResource()
+                .getValueMap()
+                .get(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, String.class);
+
+        LOG.debug("Global overlay setting: {}", globalOverlaySetting);
+    }
+
+    // Fetch page-specific overlay setting
+    String pageOverlaySetting = null;
+    if (currentPage != null && currentPage.getContentResource() != null) {
+        pageOverlaySetting = currentPage.getContentResource()
+                .getValueMap()
+                .get(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, String.class);
+
+        LOG.debug("Page overlay setting: {}", pageOverlaySetting);
+    }
+
+    // Logic to determine if the overlay is disabled
+    if ("false".equalsIgnoreCase(globalOverlaySetting) && "false".equalsIgnoreCase(pageOverlaySetting)) {
+        LOG.debug("Overlay is disabled globally and on the page.");
+        return true; // Overlay is disabled
+    }
+
+    if ("false".equalsIgnoreCase(globalOverlaySetting) && "true".equalsIgnoreCase(pageOverlaySetting)) {
+        LOG.debug("Overlay is enabled globally but disabled for the current page.");
+        return false; // Overlay is shown
+    }
+
+    // Default case
+    LOG.debug("No matching condition found; returning false (overlay is enabled).");
+    return false; // Overlay is shown
+}
+
+
 
 

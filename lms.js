@@ -4040,4 +4040,49 @@ private boolean isDisableCookie(LanguageSite languageSite) {
 
 
 
+public boolean isDisableCookie() {
+    LOG.debug("Checking if cookie overlay is disabled.");
+
+    // Fetch LanguageSite and its content resource
+    Resource languageSiteResource = Optional.ofNullable(currentPage)
+            .map(page -> page.adaptTo(LanguageSite.class))
+            .map(LanguageSite::getPage)
+            .map(Page::getContentResource)
+            .orElse(null);
+
+    if (languageSiteResource == null) {
+        LOG.debug("LanguageSite resource is null. Defaulting to overlay enabled.");
+        return false; // Default to overlay enabled
+    }
+
+    // Fetch global overlay setting
+    String globalOverlaySetting = languageSiteResource.getValueMap()
+            .get(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, String.class);
+    LOG.debug("Global overlay setting: {}", globalOverlaySetting);
+
+    // Fetch page-specific overlay setting
+    String pageOverlaySetting = Optional.ofNullable(currentPage)
+            .map(Page::getContentResource)
+            .map(resource -> resource.getValueMap().get(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, String.class))
+            .orElse(null);
+    LOG.debug("Page overlay setting: {}", pageOverlaySetting);
+
+    // Logic to determine if the overlay is disabled
+    if ((globalOverlaySetting == null || "false".equalsIgnoreCase(globalOverlaySetting)) &&
+        (pageOverlaySetting == null || "false".equalsIgnoreCase(pageOverlaySetting))) {
+        LOG.debug("Overlay is disabled globally and on the page.");
+        return true; // Overlay is disabled
+    }
+
+    if ((globalOverlaySetting == null || "false".equalsIgnoreCase(globalOverlaySetting)) &&
+        "true".equalsIgnoreCase(pageOverlaySetting)) {
+        LOG.debug("Overlay is enabled globally but disabled for the current page.");
+        return false; // Overlay is shown
+    }
+
+    // Default case
+    LOG.debug("No matching condition found; returning false (overlay is enabled).");
+    return true; 
+}
+
 

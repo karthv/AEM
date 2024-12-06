@@ -3961,3 +3961,24 @@ public class OptimizedAdaptiveImageServlet extends SlingSafeMethodsServlet {
 }
 
 
+private boolean isCookieOverlayNotRequired(LanguageSite languageSite) {
+    // Check if the global setting in the language site enables the cookie overlay
+    boolean isOverlayGloballyEnabled = languageSite != null && 
+                                       languageSite.getPage() != null && 
+                                       languageSite.getPage().getContentResource() != null &&
+                                       !languageSite.getPage().getContentResource()
+                                       .getValueMap()
+                                       .getOrDefault(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, Boolean.FALSE);
+
+    // Check if the overlay is disabled for the current page
+    boolean isOverlayDisabledAtCurrentPage = currentPage != null && 
+                                             currentPage.getContentResource() != null &&
+                                             currentPage.getContentResource()
+                                             .getValueMap()
+                                             .getOrDefault(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, Boolean.FALSE);
+
+    // If globally enabled and not disabled at the current page level, return false (overlay is required)
+    return !isOverlayGloballyEnabled || isOverlayDisabledAtCurrentPage;
+}
+
+

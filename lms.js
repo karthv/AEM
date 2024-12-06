@@ -3962,23 +3962,41 @@ public class OptimizedAdaptiveImageServlet extends SlingSafeMethodsServlet {
 
 
 private boolean isCookieOverlayNotRequired(LanguageSite languageSite) {
+    // Debug: Log the start of the method
+    LOG.debug("Checking if cookie overlay is not required.");
+
     // Check if the global setting in the language site enables the cookie overlay
-    boolean isOverlayGloballyEnabled = languageSite != null && 
-                                       languageSite.getPage() != null && 
-                                       languageSite.getPage().getContentResource() != null &&
-                                       !languageSite.getPage().getContentResource()
-                                       .getValueMap()
-                                       .getOrDefault(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, Boolean.FALSE);
+    boolean isOverlayGloballyEnabled = false;
+    if (languageSite != null && languageSite.getPage() != null && languageSite.getPage().getContentResource() != null) {
+        String globalOverlaySetting = languageSite.getPage().getContentResource()
+                .getValueMap()
+                .get(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, String.class);
+        isOverlayGloballyEnabled = !"true".equalsIgnoreCase(globalOverlaySetting); // "true" disables overlay
+
+        // Debug: Log the global overlay setting
+        LOG.debug("Global overlay setting (enabled): {}", isOverlayGloballyEnabled);
+    }
 
     // Check if the overlay is disabled for the current page
-    boolean isOverlayDisabledAtCurrentPage = currentPage != null && 
-                                             currentPage.getContentResource() != null &&
-                                             currentPage.getContentResource()
-                                             .getValueMap()
-                                             .getOrDefault(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, Boolean.FALSE);
+    boolean isOverlayDisabledAtCurrentPage = false;
+    if (currentPage != null && currentPage.getContentResource() != null) {
+        String pageOverlaySetting = currentPage.getContentResource()
+                .getValueMap()
+                .get(LibraryConstants.COOKIE_OVERLAY_NOT_REQUIRED, String.class);
+        isOverlayDisabledAtCurrentPage = "true".equalsIgnoreCase(pageOverlaySetting); // "true" disables overlay
 
-    // If globally enabled and not disabled at the current page level, return false (overlay is required)
-    return !isOverlayGloballyEnabled || isOverlayDisabledAtCurrentPage;
+        // Debug: Log the page-specific overlay setting
+        LOG.debug("Page overlay setting (disabled): {}", isOverlayDisabledAtCurrentPage);
+    }
+
+    // Final decision: If globally enabled and not disabled at the current page level, overlay is required
+    boolean result = !isOverlayGloballyEnabled || isOverlayDisabledAtCurrentPage;
+
+    // Debug: Log the final result
+    LOG.debug("Cookie overlay not required: {}", result);
+
+    return result;
 }
+
 
 
